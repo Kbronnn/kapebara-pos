@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KapeBara - Customer Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="css/customer.css">
+</head>
+
+<body>
+  <div class="portal-container">
+
+    <div id="landing-view">
+      <header class="landing-header">
+        <div class="landing-brand">
+          <img src="assets/logo.jpg" alt="KapeBara Logo" class="landing-logo">
+          <span class="landing-name">KapeBara</span>
+        </div>
+        <nav class="landing-nav">
+          <a href="#landing-view">Home</a>
+          <a href="#about-us">About Us</a>
+          <a href="#services">Services</a>
+          <a href="#events-landing">Events</a>
+          <a href="#rate-us">Rate Us</a>
+          <a href="#contacts">Contacts</a>
+        </nav>
+        <button class="landing-login-btn" id="nav-login-btn">Login</button>
+      </header>
+
+      <div class="landing-hero">
+        <div class="hero-content">
+          <h1>Experience the Cozy Charm of KapeBara</h1>
+          <p>More than just a coffee shop—it's a peaceful sanctuary. Sip on artisanal brews, collect rewards, and find
+            your calm in the company of our capybara spirit.</p>
+          <button class="hero-cta" id="hero-join-btn">Join our Loyalty Circle</button>
+        </div>
+      </div>
+
+
+      <section id="about-us" class="landing-section">
+        <div class="section-container">
+          <h2 class="section-title">Our Story</h2>
+          <div class="about-content">
+            <p>KapeBara is a small enterprise that operates as a multifunctional community space, combining traditional
+              retail and event-driven services. Founded in 2025, Kapebara expanded its café space in just one month.
+              This progress strengthens the business's reputation.</p>
+            <div class="hours-box">
+              <h3>Operating Hours</h3>
+              <p><strong>Mon - Fri:</strong> 2:00 PM - 12:00 MN</p>
+              <p><strong>Sat - Sun:</strong> 9:00 AM - 12:00 MN</p>
+              <p class="hours-note">Ensuring a reliable space for daily customers and event participants alike.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <section id="services" class="landing-section alt-bg">
+        <div class="section-container">
+          <h2 class="section-title">Our Services</h2>
+          <div class="services-grid">
+            <div class="service-card">
+              <div class="service-icon">☕</div>
+              <h3>Artisanal Coffee</h3>
+              <p>Crafted brews from the finest beans.</p>
+            </div>
+            <div class="service-card">
+              <div class="service-icon">🎓</div>
+              <h3>Workshops</h3>
+              <p>Workshops for coffeeshops and aspiring baristas.</p>
+            </div>
+            <div class="service-card">
+              <div class="service-icon">🤝</div>
+              <h3>Community Space</h3>
+              <p>A reliable space for meetings and events.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <section id="events-landing" class="landing-section">
+        <div class="section-container">
+          <h2 class="section-title">Upcoming Events</h2>
+          <div class="events-grid" id="events-grid-landing">
+
+          </div>
+        </div>
+      </section>
+
+      <section id="rate-us" class="landing-section">
+        <div class="section-container">
+          <h2 class="section-title">Rate Your Experience</h2>
+          <div class="rate-us-container">
+            <div id="rate-us-form-wrapper">
+              <p style="text-align: center; color: var(--text-light); margin-bottom: 25px;">How was your visit to
+                KapeBara? We'd love to hear from you!</p>
+              <form id="rating-form">
+                <div class="star-rating">
+                  <input type="radio" id="star5" name="rating" value="5" /><label for="star5" title="5 stars"></label>
+                  <input type="radio" id="star4" name="rating" value="4" /><label for="star4" title="4 stars"></label>
+                  <input type="radio" id="star3" name="rating" value="3" /><label for="star3" title="3 stars"></label>
+                  <input type="radio" id="star2" name="rating" value="2" /><label for="star2" title="2 stars"></label>
+                  <input type="radio" id="star1" name="rating" value="1" /><label for="star1" title="1 star"></label>
+                </div>
+                <div class="form-group" style="margin-top: 20px;">
+                  <textarea id="rating-comment" rows="3"
+                    placeholder="Share your thoughts about your coffee or your stay..."></textarea>
+                </div>
+                <button type="submit" class="hero-cta" style="width: 100%; margin-top: 10px;">Submit Rating</button>
+              </form>
+              <div id="rating-message" style="margin-top: 15px; text-align: center; font-weight: 500;"></div>
+            </div>
+          </div>
+
+          <div class="recent-ratings">
+            <h3>Customer Reviews</h3>
+            <div id="ratings-display-grid" class="ratings-grid">
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <section id="contacts" class="landing-section alt-bg">
+        <div class="section-container">
+          <h2 class="section-title">Connect with Us</h2>
+          <div class="contacts-grid">
+            <div class="contact-item">
+              <span class="contact-label">📍 Address:</span>
+              <span>2 St. John Perpetual Village, Taguig City</span>
+            </div>
+            <div class="contact-item">
+              <span class="contact-label">✉️ Email:</span>
+              <a href="mailto:kapebaraph@gmail.com">kapebaraph@gmail.com</a>
+            </div>
+            <div class="contact-item">
+              <span class="contact-label">📸 Instagram:</span>
+              <a href="https://instagram.com/kapebara_ph" target="_blank">@kapebara_ph</a>
+            </div>
+            <div class="contact-item">
+              <span class="contact-label">🎵 TikTok:</span>
+              <a href="https://tiktok.com/@KapeBara_ph" target="_blank">@KapeBara_ph</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="landing-footer">
+        <p>&copy; 2025 KapeBara. All rights reserved.</p>
+      </footer>
+    </div>
+
+
+    <header id="portal-header" style="display: none;">
+      <div class="logo-container">
+        <img src="assets/logo.jpg" alt="KapeBara Logo" class="logo" id="logo"
+          onerror="this.src='https://placehold.co/100x100?text=Logo'">
+        <div>
+          <h1>KapeBara</h1>
+          <span style="color: var(--text-light)">Customer Portal</span>
+        </div>
+      </div>
+      <div id="welcome-message"></div>
+    </header>
+
+
+    <div id="auth-view" class="section" style="display: none;">
+      <h2 class="section-title" id="auth-title">Customer Login</h2>
+      <div id="login-form-container">
+        <form id="login-form">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="login-email" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="login-password" required>
+          </div>
+          <button type="submit" style="width: 100%; margin-top: 10px;">Login</button>
+        </form>
+        <p style="text-align: center; margin-top: 15px;">
+          Don't have an account? <a href="#" id="show-register"
+            style="color: var(--accent); font-weight: bold;">Register here</a>
+        </p>
+      </div>
+
+      <div id="register-form-container" style="display: none;">
+        <form id="register-form">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="reg-name" required>
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="reg-email" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="reg-password" required>
+          </div>
+          <button type="submit" style="width: 100%; margin-top: 10px;">Register Account</button>
+        </form>
+        <p style="text-align: center; margin-top: 15px;">
+          Already have an account? <a href="#" id="show-login" style="color: var(--accent); font-weight: bold;">Login
+            here</a>
+        </p>
+      </div>
+      <div id="auth-message" style="margin-top: 15px; font-weight: 500; text-align: center; color: red;"></div>
+    </div>
+
+
+    <div id="portal-view" style="display: none;">
+      <div style="text-align: right; margin-bottom: 20px;">
+        <button id="logout-btn"
+          style="background: transparent; color: var(--accent); border: 1px solid var(--accent);">Logout</button>
+      </div>
+      <div class="section" id="loyalty-section">
+        <h2 class="section-title">Your Account & Benefits</h2>
+        <div class="loyalty-card">
+          <div class="loyalty-profile">
+            <img src="" alt="Profile" class="user-avatar" id="user-avatar"
+              onerror="this.src='https://placehold.co/80x80?text=CB'">
+            <div class="loyalty-header">
+              <span class="card-title">KapeBara Loyalty</span>
+              <span class="tier-badge" id="tier-badge">Bronze</span>
+            </div>
+          </div>
+          <div class="points-display" id="points-display">
+            0 <span style="font-size: 0.4em; font-family: 'Inter', sans-serif;">Pts</span>
+          </div>
+          <div style="margin-top: 15px;">
+            <strong>Current Benefits:</strong>
+            <ul class="benefits-list" id="benefits-list">
+
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">Ongoing & Incoming Events</h2>
+        <div class="events-grid" id="events-grid">
+
+        </div>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">Host an Event in our Shop</h2>
+        <p style="margin-top: 0; color: var(--text-light); margin-bottom: 20px;">
+          Want to host a meeting, party, or get-together at KapeBara? Fill out the form below to submit a request.
+        </p>
+        <form id="host-event-form">
+          <div class="form-group">
+            <label for="event-title">Event Title</label>
+            <input type="text" id="event-title" required placeholder="e.g. Birthday Party, Study Group">
+          </div>
+          <div class="form-group">
+            <label for="event-date">Proposed Date</label>
+            <input type="date" id="event-date" required>
+          </div>
+          <div class="form-group">
+            <label for="event-desc">Description</label>
+            <textarea id="event-desc" rows="3" placeholder="Tell us more about your event..."></textarea>
+          </div>
+          <button type="submit">Submit Request</button>
+        </form>
+        <div id="form-message" style="margin-top: 15px; font-weight: 500;"></div>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">Account Settings</h2>
+        <div class="account-settings-card">
+          <form id="account-settings-form">
+            <div class="settings-grid">
+              <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="settings-name" placeholder="Enter your name">
+              </div>
+              <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="settings-email" placeholder="Enter your email">
+              </div>
+              <div class="form-group">
+                <label>Profile Picture (Upload from device)</label>
+                <input type="file" id="settings-avatar" accept="image/*">
+              </div>
+              <div class="form-group">
+                <label>New Password (leave blank to keep current)</label>
+                <input type="password" id="settings-password" placeholder="Min. 6 characters">
+              </div>
+            </div>
+            <button type="submit" class="hero-cta" style="margin-top: 20px;">Update Account Details</button>
+          </form>
+          <div id="settings-message" style="margin-top: 15px; font-weight: 500;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/customer.js"></script>
+</body>
+
+</html>
