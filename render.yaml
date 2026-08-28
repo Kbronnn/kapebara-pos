@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: kapebara
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && cd ../frontend && npm install && npm run build
+    startCommand: node server.js
+    disk:
+      name: uploads
+      mountPath: /opt/render/project/src/uploads
+      sizeGB: 1
+    envVars:
+      - key: MONGODB_URI
+        sync: false        # paste your MongoDB Atlas URI in the Render dashboard
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000       # Render's default port — do not change
