@@ -3,6 +3,7 @@ require('dotenv').config();
 const dns = require('dns');
 dns.setDefaultResultOrder('ipv4first');
 dns.setServers(['8.8.8.8', '8.8.4.4']);
+
 const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
@@ -17,17 +18,9 @@ async function startServer() {
   app.use(cors());
   app.use(express.json());
 
-  // In production serve the Vite build output; during dev, Vite runs its own server
-  const staticDir = process.env.NODE_ENV === 'production'
-    ? path.join(__dirname, '../frontend/dist')
-    : path.join(__dirname, '../frontend/dist');
-  app.use(express.static(staticDir));
-  app.use('/uploads', express.static(
-    process.env.NODE_ENV === 'production'
-      ? '/opt/render/project/src/uploads'
-      : path.join(__dirname, 'uploads')
-  ));
-
+  // Serve frontend files directly
+  app.use(express.static(path.join(__dirname, '../frontend')));
+  app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
   app.use('/api/products',  require('./routes/products'));
   app.use('/api/orders',    require('./routes/orders'));
@@ -40,7 +33,7 @@ async function startServer() {
   app.use('/api/settings',  require('./routes/settings'));
 
   app.get('*', (_req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+    res.sendFile(path.join(__dirname, '../frontend/index.html'));
   });
 
   app.listen(PORT, '0.0.0.0', () => {
