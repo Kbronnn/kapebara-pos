@@ -1,4 +1,8 @@
 require('dotenv').config();
+// Force Google DNS so MongoDB Atlas SRV records resolve correctly
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
@@ -13,8 +17,17 @@ async function startServer() {
   app.use(cors());
   app.use(express.json());
 
-  app.use(express.static(path.join(__dirname, '../frontend')));
-  app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+  // In production serve the Vite build output; during dev, Vite runs its own server
+  const staticDir = process.env.NODE_ENV === 'production'
+    ? path.join(__dirname, '../frontend/dist')
+    : path.join(__dirname, '../frontend/dist');
+  app.use(express.static(staticDir));
+  app.use('/uploads', express.static(
+    process.env.NODE_ENV === 'production'
+      ? '/opt/render/project/src/uploads'
+      : path.join(__dirname, 'uploads')
+  ));
+
 
   app.use('/api/products',  require('./routes/products'));
   app.use('/api/orders',    require('./routes/orders'));
@@ -24,14 +37,25 @@ async function startServer() {
   app.use('/api/events',    require('./routes/events'));
   app.use('/api/auth',      require('./routes/auth'));
   app.use('/api/ratings',   require('./routes/ratings'));
+  app.use('/api/settings',  require('./routes/settings'));
 
   app.get('*', (_req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
   });
 
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
+    const os = require('os');
+    const nets = os.networkInterfaces();
+    let localIP = 'localhost';
+    for (const iface of Object.values(nets)) {
+      for (const net of iface) {
+        if (net.family === 'IPv4' && !net.internal) { localIP = net.address; break; }
+      }
+    }
     console.log(`\n☕  KapeBara POS is running!\n`);
-    console.log(`   → Open in browser: http://localhost:${PORT}\n`);
+    console.log(`   → Local (this PC):  http://localhost:${PORT}`);
+    console.log(`   → Staff Portal:     http://${localIP}:${PORT}/`);
+    console.log(`   → Customer Portal:  http://${localIP}:${PORT}/customer.html\n`);
   });
 }
 
