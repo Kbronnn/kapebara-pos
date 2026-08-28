@@ -3,10 +3,10 @@ require('dotenv').config();
 const dns = require('dns');
 dns.setDefaultResultOrder('ipv4first');
 dns.setServers(['8.8.8.8', '8.8.4.4']);
-
 const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
+const fs      = require('fs');
 const { connectDatabase } = require('./db/database');
 
 const PORT = process.env.PORT || 3000;
@@ -18,8 +18,11 @@ async function startServer() {
   app.use(cors());
   app.use(express.json());
 
-  // Serve frontend files directly
-  app.use(express.static(path.join(__dirname, '../frontend')));
+  const staticDir = fs.existsSync(path.join(__dirname, '../frontend/dist'))
+    ? path.join(__dirname, '../frontend/dist')
+    : path.join(__dirname, '../frontend');
+
+  app.use(express.static(staticDir));
   app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
   app.use('/api/products',  require('./routes/products'));
@@ -32,9 +35,15 @@ async function startServer() {
   app.use('/api/ratings',   require('./routes/ratings'));
   app.use('/api/settings',  require('./routes/settings'));
 
-  app.get('*', (_req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
+  app.get('/customer.html', (_req, res) => {
+    res.sendFile(path.join(staticDir, 'customer.html'));
   });
+
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(staticDir, 'index.html'));
+  });
+
+
 
   app.listen(PORT, '0.0.0.0', () => {
     const os = require('os');

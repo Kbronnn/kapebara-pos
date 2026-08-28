@@ -1,5 +1,5 @@
 const express    = require('express');
-const { Order, Product, Ingredient } = require('../db/database');
+const { Order, Product, Ingredient, Customer, Counter } = require('../db/database');
 
 const router = express.Router();
 
@@ -8,6 +8,16 @@ function todayRange() {
   const start = new Date(); start.setHours(0, 0, 0, 0);
   const end   = new Date(); end.setHours(23, 59, 59, 999);
   return { start, end };
+}
+
+// Helper: generate next clean order number (KB-000001)
+async function nextOrderNumber() {
+  const counter = await Counter.findByIdAndUpdate(
+    'orders',
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+  return `KB-${String(counter.seq).padStart(6, '0')}`;
 }
 
 // GET orders with optional period filter
@@ -135,6 +145,47 @@ router.get('/reports/sales', async (req, res) => {
   }
 });
 
+// GET pending/processing portal orders (for Staff POS view)
+router.get('/portal-pending', async (req, res) => {
+  try {
+    const orders = await Order.find({ source: 'portal', status: { $in: ['pending', 'processing'] } })
+      .sort({ created_at: 1 });
+
+    const result = await Promise.all(orders.map(async (o) => {
+      const json = o.toJSON();
+      if (o.customer_id && (!json.customer_name || !json.customer_unique_id)) {
+        try {
+          const cust = await Customer.findById(o.customer_id);
+          if (cust) {
+            json.customer_name = cust.name || json.customer_name;
+            json.customer_unique_id = cust.unique_id || json.customer_unique_id;
+          }
+        } catch {}
+      }
+      return {
+        ...json,
+        items_summary: o.items.map(i => `${i.product_name} x${i.quantity}`).join(', ')
+      };
+    }));
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch portal orders' });
+  }
+});
+
+// GET customer's own portal orders
+router.get('/my-orders/:customerId', async (req, res) => {
+  try {
+    const orders = await Order.find({ source: 'portal', customer_id: req.params.customerId })
+      .sort({ created_at: -1 })
+      .limit(20);
+    res.json(orders.map(o => ({ ...o.toJSON(), items: o.items })));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch customer orders' });
+  }
+});
+
 // GET single order
 router.get('/:id', async (req, res) => {
   try {
@@ -146,27 +197,95 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// PATCH update order status (e.g. pending -> completed / processing)
+router.patch('/:id/status', async (req, res) => {
+  const { status } = req.body;
+  const allowed = ['pending', 'processing', 'completed', 'cancelled'];
+  if (!allowed.includes(status))
+    return res.status(400).json({ error: 'Invalid status' });
+
+  try {
+    const order = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+
+    // Automatically award points when order is completed
+    if (status === 'completed') {
+      try {
+        let cust = null;
+        if (order.customer_id) {
+          cust = await Customer.findById(order.customer_id);
+        } else if (order.customer_unique_id) {
+          cust = await Customer.findOne({ unique_id: order.customer_unique_id });
+        }
+
+        if (cust) {
+          const ptsEarned = Math.floor(order.total / 10);
+          if (ptsEarned > 0) {
+            cust.points += ptsEarned;
+            if (cust.points >= 5000) cust.loyalty_level = 'Platinum';
+            else if (cust.points >= 2000) cust.loyalty_level = 'Gold';
+            else if (cust.points >= 500) cust.loyalty_level = 'Silver';
+            await cust.save();
+          }
+        }
+      } catch (ptsErr) {
+        console.error('Failed to auto-award points:', ptsErr);
+      }
+    }
+
+    res.json({ message: `Order status updated to ${status}`, order: order.toJSON() });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update order status' });
+  }
+});
+
 // POST create order (deducts inventory)
 router.post('/', async (req, res) => {
-  const { items, discount = 0, payment_method = 'Cash', notes = '' } = req.body;
+  const {
+    items, discount = 0, payment_method = 'Cash',
+    notes = '', table_number = '', customer_id = null,
+    source = 'pos', customer_name = ''
+  } = req.body;
+
   if (!Array.isArray(items) || items.length === 0)
     return res.status(400).json({ error: 'Order must have at least one item' });
 
-  const session = await Order.startSession();
-  session.startTransaction();
   try {
     let subtotal = 0;
     const resolvedItems = [];
 
+    // Lookup customer details if customer_id provided
+    let finalCustName = customer_name;
+    let finalCustUniqueId = '';
+    if (customer_id) {
+      try {
+        const custDoc = await Customer.findById(customer_id);
+        if (custDoc) {
+          finalCustName = custDoc.name || finalCustName;
+          finalCustUniqueId = custDoc.unique_id || '';
+        }
+      } catch {}
+    }
+
     for (const { product_id, quantity, customizations } of items) {
-      const product = await Product.findOne({ _id: product_id, active: 1 }).session(session);
+      const product = await Product.findOne({ _id: product_id, active: 1 });
       if (!product) throw new Error(`Product ${product_id} not found or inactive`);
 
+      // ── Extra cost calculation based on customizations ──────────────────────
       let extraCost = 0;
       if (customizations) {
-        if (customizations.milk === 'Oat')    extraCost += 25;
-        if (customizations.milk === 'Almond') extraCost += 30;
-        if (customizations.addons) {
+        // Coffee / Non-Coffee temperature
+        if (customizations.temperature === 'Hot') extraCost += 20;
+        // Milk type upgrades
+        if (customizations.milk === 'Oat')        extraCost += 25;
+        if (customizations.milk === 'Almond')     extraCost += 30;
+        // Blended series — add ice cream
+        if (customizations.iceCream)              extraCost += 50;
+        // Food — add a drink
+        if (customizations.drinkaddon === 'Iced Tea') extraCost += 20;
+        if (customizations.drinkaddon === 'Soda')     extraCost += 30;
+        // Legacy add-ons (kept for backwards-compat)
+        if (Array.isArray(customizations.addons)) {
           if (customizations.addons.includes('Extra Shot'))      extraCost += 25;
           if (customizations.addons.includes('Caramel Drizzle')) extraCost += 15;
           if (customizations.addons.includes('Whipped Cream'))   extraCost += 20;
@@ -186,28 +305,41 @@ router.post('/', async (req, res) => {
         customizations: customizations || {}
       });
 
-      // Deduct ingredients
-      for (const { ingredient_id, quantity_used } of product.ingredients) {
-        await Ingredient.findOneAndUpdate(
-          { _id: ingredient_id },
-          [{ $set: { current_stock: { $max: [0, { $subtract: ['$current_stock', quantity_used * quantity] }] } } }],
-          { session }
-        );
+      // Deduct ingredients only for POS orders (portal orders deduct at checkout)
+      if (source === 'pos') {
+        for (const { ingredient_id, quantity_used } of product.ingredients) {
+          await Ingredient.findOneAndUpdate(
+            { _id: ingredient_id },
+            [{ $set: { current_stock: { $max: [0, { $subtract: ['$current_stock', quantity_used * quantity] }] } } }]
+          );
+        }
       }
     }
 
-    const total = subtotal - discount;
-    const [order] = await Order.create([{
-      subtotal, discount, total, payment_method, notes, items: resolvedItems
-    }], { session });
+    const total       = Math.max(0, subtotal - discount);
+    const orderStatus = source === 'portal' ? 'pending' : 'completed';
+    const order_number = await nextOrderNumber();
 
-    await session.commitTransaction();
-    res.status(201).json({ message: 'Order created', orderId: order.id, subtotal, discount, total });
+    const order = await Order.create({
+      order_number,
+      subtotal, discount, total, payment_method, table_number,
+      customer_id: customer_id || null,
+      customer_name: finalCustName || '',
+      customer_unique_id: finalCustUniqueId || '',
+      source, status: orderStatus,
+      notes, items: resolvedItems
+    });
+
+    res.status(201).json({
+      message: 'Order created',
+      orderId: order.id,
+      order_number,
+      subtotal,
+      discount,
+      total
+    });
   } catch (err) {
-    await session.abortTransaction();
     res.status(400).json({ error: err.message });
-  } finally {
-    session.endSession();
   }
 });
 

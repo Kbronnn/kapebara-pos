@@ -15,6 +15,9 @@ function renderForecast(data) {
   const el = document.getElementById('view-forecast');
   const needRestock = data.filter(d => d.restock_needed > 0);
 
+  // Sort by days_remaining for the meter section
+  const sorted = [...data].sort((a, b) => a.days_remaining - b.days_remaining);
+
   el.innerHTML = `
     <div class="forecast-grid">
       <div class="card">
@@ -39,20 +42,23 @@ function renderForecast(data) {
 
       <div class="card">
         <div class="card-title">📅 Days of Stock Remaining</div>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          ${data.sort((a,b) => a.days_remaining - b.days_remaining).map(d => {
+        <div style="display:flex;flex-direction:column;gap:12px" id="forecast-meters">
+          ${sorted.map(d => {
             const urgent = d.days_remaining <= 3;
             const warn   = d.days_remaining <= 7;
             const color  = urgent ? 'var(--danger)' : warn ? 'var(--warning)' : 'var(--success)';
-            const pct    = Math.min(100, (d.days_remaining / 30) * 100);
+            // Start bars at 0 — JS will animate them to target
             return `
               <div>
-                <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:3px">
+                <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:4px">
                   <span class="font-bold">${d.name}</span>
                   <span style="color:${color};font-weight:600">${d.days_remaining >= 999 ? '∞' : d.days_remaining + 'd'}</span>
                 </div>
-                <div class="stock-bar-wrap" style="width:100%">
-                  <div style="height:6px;border-radius:3px;background:${color};width:${pct}%;transition:width .4s"></div>
+                <div class="stock-bar-wrap" style="width:100%;height:8px;border-radius:4px;background:var(--border);overflow:hidden;">
+                  <div class="forecast-meter-bar"
+                    style="height:100%;border-radius:4px;background:${color};width:0%;transition:width 0.9s cubic-bezier(.4,0,.2,1);"
+                    data-target="${Math.min(100, (d.days_remaining / 30) * 100)}">
+                  </div>
                 </div>
               </div>`;
           }).join('')}
@@ -72,10 +78,19 @@ function renderForecast(data) {
 
   window.forecastData = data;
   renderForecastChart(data);
+
+  // ── Boomerang animation: trigger after paint ───────────────────────────────
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.forecast-meter-bar').forEach(bar => {
+        bar.style.width = bar.dataset.target + '%';
+      });
+    });
+  });
 }
 
 function renderForecastChart(data) {
-  const selId = parseInt(document.getElementById('forecast-select')?.value);
+  const selId = document.getElementById('forecast-select')?.value;
   const item  = data.find(d => d.id === selId) || data[0];
   if (!item) return;
 

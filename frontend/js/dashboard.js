@@ -129,6 +129,8 @@ async function initDashboard() {
 
     // Load event requests after dashboard renders
     loadEventRequests();
+    // Load shop settings card
+    loadShopSettingsCard(el);
 
   } catch (err) {
     el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>${err.message}</p></div>`;
@@ -158,7 +160,11 @@ async function loadEventRequests() {
           <tr>
             <th>Event</th>
             <th>Host / Customer</th>
+            <th>Phone</th>
             <th>Proposed Date</th>
+            <th>Time</th>
+            <th>Max Guests</th>
+            <th>Private</th>
             <th>Availability</th>
             <th>Description</th>
             <th>Actions</th>
@@ -176,15 +182,25 @@ async function loadEventRequests() {
         : conflict
           ? `<span class="badge badge-critical" title="Another event is already approved on this date">⚠️ Conflict</span>`
           : `<span class="badge badge-ok" style="background:#d4edda;color:#155724">✅ Available</span>`;
+      const timeDisplay = e.preferred_time
+        ? (() => { const [h,m] = e.preferred_time.split(':').map(Number); const p = h>=12?'PM':'AM'; return `${h%12||12}:${String(m).padStart(2,'0')} ${p}`; })()
+        : '—';
+      const privateBadge = e.is_private
+        ? `<span class="badge" style="background:#ede7f6;color:#512da8">🔒 Private</span>`
+        : `<span class="badge badge-ok">🌐 Public</span>`;
       return `<tr>
               <td class="font-bold">${e.title || '—'}</td>
               <td>${e.host_name || '—'}</td>
+              <td style="font-size:0.85rem">${e.phone || '—'}</td>
               <td style="white-space:nowrap">${friendly}</td>
+              <td style="white-space:nowrap;font-weight:600">${timeDisplay}</td>
+              <td style="text-align:center">${e.max_participants || 30}</td>
+              <td>${privateBadge}</td>
               <td>${availBadge}</td>
-              <td style="max-width:200px;font-size:0.85rem;color:var(--text-light)">${e.description || '—'}</td>
+              <td style="max-width:180px;font-size:0.85rem;color:var(--text-light)">${e.description || '—'}</td>
               <td style="white-space:nowrap">
-                <button class="btn btn-primary btn-sm" style="margin-right:6px" onclick="updateEventStatus(${e.id},'approved')">✓ Approve</button>
-                <button class="btn btn-secondary btn-sm" style="border-color:var(--danger);color:var(--danger)" onclick="updateEventStatus(${e.id},'rejected')">✕ Reject</button>
+                <button class="btn btn-primary btn-sm" style="margin-right:6px" onclick="updateEventStatus('${e.id}','approved')">✓ Approve</button>
+                <button class="btn btn-secondary btn-sm" style="border-color:var(--danger);color:var(--danger)" onclick="updateEventStatus('${e.id}','rejected')">✕ Reject</button>
               </td>
             </tr>`;
     }).join('')}
@@ -198,8 +214,14 @@ async function loadEventRequests() {
 
 async function updateEventStatus(id, status) {
   try {
-    await API.patch(`/events/${id}/status`, { status });
-    toast(`Event ${status} successfully!`, status === 'approved' ? 'success' : 'warning');
+    if (status === 'rejected') {
+      // Permanently delete rejected events so they vanish from all views
+      await API.delete(`/events/${id}`);
+      toast('Event rejected and removed.', 'warning');
+    } else {
+      await API.patch(`/events/${id}/status`, { status });
+      toast(`Event approved successfully!`, 'success');
+    }
     loadEventRequests();
   } catch (err) {
     toast('Failed to update event: ' + err.message, 'error');
@@ -289,7 +311,7 @@ function renderOrdersTable(orders, emptyMsg) {
     const statusLabel = o.status === 'completed' ? '✅ Done' :
       o.status === 'pending' ? '⏳ Pending' : '🔄 ' + o.status;
     return `<tr>
-            <td class="font-bold">#${o.id}</td>
+            <td class="font-bold" style="white-space:nowrap;font-family:monospace;font-size:.82rem">${fmtOrderNum(o, i)}</td>
             <td style="white-space:nowrap">${time}</td>
             <td style="font-size:0.85rem;line-height:1.6">${itemsList}</td>
             <td>${o.payment_method || 'Cash'}</td>
@@ -303,3 +325,71 @@ function renderOrdersTable(orders, emptyMsg) {
   </div>`;
 }
 
+function fmtOrderNum(order, listIndex) {
+  // Display as #ORD-YYYY-NNNN using creation year and 1-based list position
+  const year = order.created_at ? new Date(order.created_at).getFullYear() : new Date().getFullYear();
+  const seq  = String(listIndex + 1).padStart(4, '0');
+  return `#ORD-${year}-${seq}`;
+}
+
+/* ── Shop Settings Card ─────────────────────────────────────────────────── */
+async function loadShopSettingsCard(container) {
+  try {
+    const s = await API.get('/settings');
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = 'shop-settings-card';
+    card.innerHTML = `
+      <div class="section-header" style="margin-bottom:16px;">
+        <span class="card-title" style="margin:0">⚙️ Shop Settings</span>
+      </div>
+      <form id="shop-settings-form" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="form-group">
+          <label class="form-label">Max People per Event</label>
+          <input type="number" id="ss-max-people" class="form-control" min="1" value="${s.max_people_per_event||30}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Max Concurrent Events per Day</label>
+          <input type="number" id="ss-max-events" class="form-control" min="1" value="${s.max_concurrent_events||1}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Shop Open Time</label>
+          <input type="time" id="ss-open-time" class="form-control" value="${s.shop_open_time||'14:00'}">
+          <span style="font-size:0.75rem;color:var(--text-light)">Default: 2:00 PM</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Shop Close Time</label>
+          <input type="time" id="ss-close-time" class="form-control" value="${s.shop_close_time||'00:00'}">
+          <span style="font-size:0.75rem;color:var(--text-light)">Default: 12:00 AM</span>
+        </div>
+        <div style="grid-column:1/-1;display:flex;justify-content:flex-end;gap:10px;margin-top:4px;">
+          <button type="submit" class="btn btn-primary">Save Settings</button>
+        </div>
+      </form>
+      <div id="ss-message" style="margin-top:10px;font-size:0.85rem;font-weight:500;"></div>`;
+    container.appendChild(card);
+
+    document.getElementById('shop-settings-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      const msg = document.getElementById('ss-message');
+      try {
+        await API.put('/settings', {
+          max_people_per_event:  parseInt(document.getElementById('ss-max-people').value),
+          max_concurrent_events: parseInt(document.getElementById('ss-max-events').value),
+          shop_open_time:        document.getElementById('ss-open-time').value,
+          shop_close_time:       document.getElementById('ss-close-time').value,
+        });
+        msg.style.color = 'var(--success)';
+        msg.textContent = '✅ Shop settings saved!';
+        setTimeout(() => msg.textContent = '', 3000);
+      } catch (err) {
+        msg.style.color = 'var(--danger)';
+        msg.textContent = '❌ ' + err.message;
+      } finally { btn.disabled = false; }
+    });
+  } catch (err) {
+    console.error('Failed to load shop settings', err);
+  }
+}
