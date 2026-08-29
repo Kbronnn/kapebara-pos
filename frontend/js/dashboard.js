@@ -243,19 +243,19 @@ async function showOrdersTodayModal() {
     const modalBody = document.getElementById('modal-body');
     modalBody.innerHTML = `
       <div class="orders-tabs">
-        <button class="orders-tab-btn active" id="tab-btn-history" onclick="switchOrderTab('history')">
-          ✅ Order History <span class="tab-count">${completed.length}</span>
-        </button>
-        <button class="orders-tab-btn" id="tab-btn-pending" onclick="switchOrderTab('pending')">
+        <button class="orders-tab-btn active" id="tab-btn-pending" onclick="switchOrderTab('pending')">
           ⏳ To Be Made <span class="tab-count">${pending.length}</span>
+        </button>
+        <button class="orders-tab-btn" id="tab-btn-history" onclick="switchOrderTab('history')">
+          ✅ Order History <span class="tab-count">${completed.length}</span>
         </button>
       </div>
 
-      <div id="orders-tab-history" class="orders-tab-panel">
-        ${renderOrdersTable(completed, 'No completed orders yet today.')}
-      </div>
-      <div id="orders-tab-pending" class="orders-tab-panel" style="display:none">
+      <div id="orders-tab-pending" class="orders-tab-panel">
         ${renderOrdersTable(pending, 'No pending orders right now — all caught up! 🎉')}
+      </div>
+      <div id="orders-tab-history" class="orders-tab-panel" style="display:none">
+        ${renderOrdersTable(completed, 'No completed orders yet today.')}
       </div>
     `;
   } catch (err) {
@@ -269,6 +269,17 @@ function switchOrderTab(tab) {
   document.querySelectorAll('.orders-tab-panel').forEach(p => p.style.display = 'none');
   document.getElementById('tab-btn-' + tab).classList.add('active');
   document.getElementById('orders-tab-' + tab).style.display = 'block';
+}
+
+async function updateOrderStatus(orderId, newStatus) {
+  try {
+    await API.patch(`/orders/${orderId}/status`, { status: newStatus });
+    showToast(`Order status updated to ${newStatus === 'completed' ? 'Done' : newStatus}!`, 'success');
+    openOrdersTodayModal();
+    loadDashboard();
+  } catch (err) {
+    showToast('Failed to update status: ' + err.message, 'error');
+  }
 }
 
 function renderOrdersTable(orders, emptyMsg) {
@@ -286,18 +297,20 @@ function renderOrdersTable(orders, emptyMsg) {
           <th>Payment</th>
           <th>Discount</th>
           <th>Total</th>
-          <th>Status</th>
+          <th>Status & Action</th>
         </tr>
       </thead>
       <tbody>
-        ${orders.map(o => {
+        ${orders.map((o, idx) => {
     const time = new Date(o.created_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
     const itemsList = o.items && o.items.length
       ? o.items.map(i => {
         let label = `${i.quantity}× ${i.product_name}`;
         try {
-          const c = JSON.parse(i.customizations || '{}');
+          const c = typeof i.customizations === 'string' ? JSON.parse(i.customizations || '{}') : (i.customizations || {});
           const extras = [];
+          if (c.temperature) extras.push(c.temperature);
+          if (c.size) extras.push(c.size);
           if (c.sugar) extras.push(c.sugar);
           if (c.milk && c.milk !== 'Regular') extras.push(c.milk + ' milk');
           if (c.addons && c.addons.length) extras.push(...c.addons);
@@ -306,18 +319,29 @@ function renderOrdersTable(orders, emptyMsg) {
         return label;
       }).join('<br>')
       : '—';
-    const statusColor = o.status === 'completed' ? 'var(--success)' :
-      o.status === 'pending' ? '#e6a817' : 'var(--latte)';
-    const statusLabel = o.status === 'completed' ? '✅ Done' :
-      o.status === 'pending' ? '⏳ Pending' : '🔄 ' + o.status;
+    const orderId = o._id || o.id;
+    const isCompleted = o.status === 'completed';
+    const actionBtn = !isCompleted
+      ? `<button class="btn btn-sm btn-success" style="padding:4px 10px;font-size:0.78rem;white-space:nowrap" onclick="updateOrderStatus('${orderId}', 'completed')">✅ Mark Done</button>`
+      : `<button class="btn btn-sm btn-secondary" style="padding:4px 8px;font-size:0.75rem;white-space:nowrap" onclick="updateOrderStatus('${orderId}', 'pending')">↩️ To Pending</button>`;
+
     return `<tr>
-            <td class="font-bold" style="white-space:nowrap;font-family:monospace;font-size:.82rem">${fmtOrderNum(o, i)}</td>
+            <td class="font-bold" style="white-space:nowrap;font-family:monospace;font-size:.82rem">${o.order_number || fmtOrderNum(o, idx)}</td>
             <td style="white-space:nowrap">${time}</td>
             <td style="font-size:0.85rem;line-height:1.6">${itemsList}</td>
             <td>${o.payment_method || 'Cash'}</td>
             <td>${o.discount > 0 ? '−' + formatPHP(o.discount) : '—'}</td>
             <td class="font-bold" style="color:var(--espresso)">${formatPHP(o.total)}</td>
-            <td><span style="font-size:0.8rem;font-weight:600;color:${statusColor}">${statusLabel}</span></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap">
+                <select onchange="updateOrderStatus('${orderId}', this.value)" style="padding:4px 8px;border-radius:6px;border:1.5px solid var(--border);font-size:0.78rem;font-weight:600;background:${isCompleted ? '#edf7f0' : '#fef9ec'};color:${isCompleted ? 'var(--success)' : '#b87c00'};cursor:pointer">
+                  <option value="pending" ${o.status === 'pending' ? 'selected' : ''}>⏳ Pending</option>
+                  <option value="processing" ${o.status === 'processing' ? 'selected' : ''}>⚙️ Processing</option>
+                  <option value="completed" ${isCompleted ? 'selected' : ''}>✅ Done</option>
+                </select>
+                ${actionBtn}
+              </div>
+            </td>
           </tr>`;
   }).join('')}
       </tbody>

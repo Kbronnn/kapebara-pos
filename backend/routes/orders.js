@@ -46,7 +46,7 @@ router.get('/summary/today', async (req, res) => {
   const { start, end } = todayRange();
 
   try {
-    const todayOrders = await Order.find({ created_at: { $gte: start, $lte: end }, status: 'completed' });
+    const todayOrders = await Order.find({ created_at: { $gte: start, $lte: end }, status: { $ne: 'cancelled' } });
 
     const total_orders    = todayOrders.length;
     const revenue         = todayOrders.reduce((s, o) => s + o.total, 0);
@@ -63,7 +63,7 @@ router.get('/summary/today', async (req, res) => {
 
     // Last 7 days revenue
     const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 6); weekStart.setHours(0,0,0,0);
-    const weekOrders = await Order.find({ created_at: { $gte: weekStart }, status: 'completed' });
+    const weekOrders = await Order.find({ created_at: { $gte: weekStart }, status: { $ne: 'cancelled' } });
     const weekMap = {};
     weekOrders.forEach(o => {
       const day = o.created_at.toISOString().slice(0, 10);
@@ -99,7 +99,7 @@ router.get('/reports/sales', async (req, res) => {
   try {
     // Daily revenue
     const daily = await Order.aggregate([
-      { $match: { created_at: { $gte: since }, status: 'completed' } },
+      { $match: { created_at: { $gte: since }, status: { $ne: 'cancelled' } } },
       { $group: {
           _id:       { $dateToString: { format: '%Y-%m-%d', date: '$created_at' } },
           revenue:   { $sum: '$total' },
@@ -112,7 +112,7 @@ router.get('/reports/sales', async (req, res) => {
 
     // Top products
     const topProducts = await Order.aggregate([
-      { $match: { created_at: { $gte: since }, status: 'completed' } },
+      { $match: { created_at: { $gte: since }, status: { $ne: 'cancelled' } } },
       { $unwind: '$items' },
       { $group: {
           _id:      '$items.product_name',
@@ -126,7 +126,7 @@ router.get('/reports/sales', async (req, res) => {
 
     // Revenue by category (via product lookup)
     const byCategory = await Order.aggregate([
-      { $match: { created_at: { $gte: since }, status: 'completed' } },
+      { $match: { created_at: { $gte: since }, status: { $ne: 'cancelled' } } },
       { $unwind: '$items' },
       { $lookup: { from: 'products', localField: 'items.product_id', foreignField: '_id', as: 'prod' } },
       { $unwind: { path: '$prod', preserveNullAndEmptyArrays: true } },
@@ -205,21 +205,25 @@ router.patch('/:id/status', async (req, res) => {
     return res.status(400).json({ error: 'Invalid status' });
 
   try {
-    const order = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true });
-    if (!order) return res.status(404).json({ error: 'Order not found' });
+    const existingOrder = await Order.findById(req.params.id);
+    if (!existingOrder) return res.status(404).json({ error: 'Order not found' });
 
-    // Automatically award points when order is completed
-    if (status === 'completed') {
+    const prevStatus = existingOrder.status;
+    existingOrder.status = status;
+    await existingOrder.save();
+
+    // Automatically award points when order transitions to completed (only if not previously completed)
+    if (status === 'completed' && prevStatus !== 'completed') {
       try {
         let cust = null;
-        if (order.customer_id) {
-          cust = await Customer.findById(order.customer_id);
-        } else if (order.customer_unique_id) {
-          cust = await Customer.findOne({ unique_id: order.customer_unique_id });
+        if (existingOrder.customer_id) {
+          cust = await Customer.findById(existingOrder.customer_id);
+        } else if (existingOrder.customer_unique_id) {
+          cust = await Customer.findOne({ unique_id: existingOrder.customer_unique_id });
         }
 
         if (cust) {
-          const ptsEarned = Math.floor(order.total / 10);
+          const ptsEarned = Math.floor(existingOrder.total / 10);
           if (ptsEarned > 0) {
             cust.points += ptsEarned;
             if (cust.points >= 5000) cust.loyalty_level = 'Platinum';
@@ -233,7 +237,7 @@ router.patch('/:id/status', async (req, res) => {
       }
     }
 
-    res.json({ message: `Order status updated to ${status}`, order: order.toJSON() });
+    res.json({ message: `Order status updated to ${status}`, order: existingOrder.toJSON() });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update order status' });
   }
@@ -317,7 +321,7 @@ router.post('/', async (req, res) => {
     }
 
     const total       = Math.max(0, subtotal - discount);
-    const orderStatus = source === 'portal' ? 'pending' : 'completed';
+    const orderStatus = req.body.status || 'pending';
     const order_number = await nextOrderNumber();
 
     const order = await Order.create({

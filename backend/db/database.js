@@ -66,7 +66,7 @@ const orderSchema = new mongoose.Schema({
   customer_name:      { type: String, default: '' },
   customer_unique_id: { type: String, default: '' },
   source:             { type: String, default: 'pos' },   // 'pos' | 'portal'
-  status:             { type: String, default: 'completed' }, // 'completed' | 'pending' | 'processing'
+  status:             { type: String, default: 'pending' },   // 'completed' | 'pending' | 'processing'
   notes:              { type: String, default: '' },
   items:              [orderItemSchema],
   created_at:         { type: Date, default: Date.now }

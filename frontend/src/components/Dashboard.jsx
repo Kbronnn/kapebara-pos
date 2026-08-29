@@ -10,9 +10,10 @@ export default function Dashboard({ navigateTo }) {
   const [settings, setSettings] = useState(null);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [showOrdersModal, setShowOrdersModal] = useState(false);
-  const [ordersTab, setOrdersTab] = useState('history'); // 'history' or 'pending'
+  const [ordersTab, setOrdersTab] = useState('pending'); // 'pending' or 'history'
   const [ordersToday, setOrdersToday] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [updatingOrderId, setUpdatingOrderId] = useState(null);
   const [portalOrders, setPortalOrders] = useState([]);
 
   // Settings form states
@@ -192,7 +193,22 @@ export default function Dashboard({ navigateTo }) {
 
   const handleOpenOrdersModal = () => {
     setShowOrdersModal(true);
+    setOrdersTab('pending');
     loadOrdersToday();
+  };
+
+  const handleUpdateOrderStatus = async (orderId, newStatus) => {
+    setUpdatingOrderId(orderId);
+    try {
+      await API.patch(`/orders/${orderId}/status`, { status: newStatus });
+      setOrdersToday(prev => prev.map(o => ((o._id === orderId || o.id === orderId) ? { ...o, status: newStatus } : o)));
+      toast(`Order status updated to ${newStatus === 'completed' ? 'Done' : newStatus === 'pending' ? 'Pending' : newStatus}!`, 'success');
+      loadData();
+    } catch (err) {
+      toast('Failed to update order status: ' + err.message, 'error');
+    } finally {
+      setUpdatingOrderId(null);
+    }
   };
 
   if (loading) {
@@ -504,24 +520,24 @@ export default function Dashboard({ navigateTo }) {
                 <>
                   <div className="orders-tabs">
                     <button
-                      className={`orders-tab-btn ${ordersTab === 'history' ? 'active' : ''}`}
-                      onClick={() => setOrdersTab('history')}
-                    >
-                      ✅ Order History <span className="tab-count">{ordersToday.filter(o => o.status === 'completed').length}</span>
-                    </button>
-                    <button
                       className={`orders-tab-btn ${ordersTab === 'pending' ? 'active' : ''}`}
                       onClick={() => setOrdersTab('pending')}
                     >
                       ⏳ To Be Made <span className="tab-count">{ordersToday.filter(o => o.status !== 'completed').length}</span>
                     </button>
+                    <button
+                      className={`orders-tab-btn ${ordersTab === 'history' ? 'active' : ''}`}
+                      onClick={() => setOrdersTab('history')}
+                    >
+                      ✅ Order History <span className="tab-count">{ordersToday.filter(o => o.status === 'completed').length}</span>
+                    </button>
                   </div>
 
                   <div className="orders-tab-panel">
-                    {ordersTab === 'history' ? (
-                      renderOrdersTable(ordersToday.filter(o => o.status === 'completed'), 'No completed orders yet today.')
+                    {ordersTab === 'pending' ? (
+                      renderOrdersTable(ordersToday.filter(o => o.status !== 'completed'), 'No pending orders right now — all caught up! 🎉', 'pending')
                     ) : (
-                      renderOrdersTable(ordersToday.filter(o => o.status !== 'completed'), 'No pending orders right now — all caught up! 🎉')
+                      renderOrdersTable(ordersToday.filter(o => o.status === 'completed'), 'No completed orders yet today.', 'history')
                     )}
                   </div>
                 </>
@@ -533,7 +549,7 @@ export default function Dashboard({ navigateTo }) {
     </div>
   );
 
-  function renderOrdersTable(ordersList, emptyMsg) {
+  function renderOrdersTable(ordersList, emptyMsg, tabType) {
     if (!ordersList.length) {
       return (
         <div className="empty-state" style={{ padding: '30px 0' }}>
@@ -554,7 +570,7 @@ export default function Dashboard({ navigateTo }) {
               <th>Payment</th>
               <th>Discount</th>
               <th>Total</th>
-              <th>Status</th>
+              <th>Status & Action</th>
             </tr>
           </thead>
           <tbody>
@@ -564,10 +580,14 @@ export default function Dashboard({ navigateTo }) {
                 ? o.items.map((item, itemIdx) => {
                     let label = `${item.quantity}× ${item.product_name}`;
                     try {
-                      const c = JSON.parse(item.customizations || '{}');
+                      const c = typeof item.customizations === 'string' ? JSON.parse(item.customizations || '{}') : (item.customizations || {});
                       const extras = [];
+                      if (c.temperature) extras.push(c.temperature);
+                      if (c.size) extras.push(c.size);
                       if (c.sugar) extras.push(c.sugar);
-                      if (c.milk && c.milk !== 'Regular') extras.push(item.milk + ' milk'); // wait, the original had c.milk, not item.milk
+                      if (c.milk && c.milk !== 'Regular') extras.push(c.milk + ' milk');
+                      if (c.iceCream) extras.push('+ Ice Cream');
+                      if (c.drinkaddon) extras.push(`+ ${c.drinkaddon}`);
                       if (c.addons && c.addons.length) extras.push(...c.addons);
                       if (extras.length) label += ` (${extras.join(', ')})`;
                     } catch {}
@@ -575,18 +595,14 @@ export default function Dashboard({ navigateTo }) {
                   })
                 : '—';
 
-              const statusColor = o.status === 'completed' ? 'var(--success)' :
-                                  o.status === 'pending' ? '#e6a817' : 'var(--latte)';
-              const statusLabel = o.status === 'completed' ? '✅ Done' :
-                                  o.status === 'pending' ? '⏳ Pending' : '🔄 ' + o.status;
-
-              // Correcting list Index issue
+              const orderId = o._id || o.id;
+              const isUpdating = updatingOrderId === orderId;
               const orderYear = o.created_at ? new Date(o.created_at).getFullYear() : new Date().getFullYear();
               const orderSeqNum = String(index + 1).padStart(4, '0');
-              const displayOrderNum = `#ORD-${orderYear}-${orderSeqNum}`;
+              const displayOrderNum = o.order_number || `#ORD-${orderYear}-${orderSeqNum}`;
 
               return (
-                <tr key={o.id || index}>
+                <tr key={orderId || index}>
                   <td className="font-bold" style={{ whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '.82rem' }}>
                     {displayOrderNum}
                   </td>
@@ -595,7 +611,50 @@ export default function Dashboard({ navigateTo }) {
                   <td>{o.payment_method || 'Cash'}</td>
                   <td>{o.discount > 0 ? '−' + formatPHP(o.discount) : '—'}</td>
                   <td className="font-bold" style={{ color: 'var(--espresso)' }}>{formatPHP(o.total)}</td>
-                  <td><span style={{ fontSize: '0.8rem', fontWeight: 600, color: statusColor }}>{statusLabel}</span></td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
+                      <select
+                        value={o.status || 'pending'}
+                        onChange={(e) => handleUpdateOrderStatus(orderId, e.target.value)}
+                        disabled={isUpdating}
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          border: '1.5px solid var(--border)',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          background: o.status === 'completed' ? 'var(--success-bg, #edf7f0)' : '#fef9ec',
+                          color: o.status === 'completed' ? 'var(--success)' : '#b87c00',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="pending">⏳ Pending</option>
+                        <option value="processing">⚙️ Processing</option>
+                        <option value="completed">✅ Done</option>
+                      </select>
+
+                      {o.status !== 'completed' ? (
+                        <button
+                          className="btn btn-sm btn-success"
+                          style={{ padding: '4px 10px', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
+                          onClick={() => handleUpdateOrderStatus(orderId, 'completed')}
+                          disabled={isUpdating}
+                        >
+                          {isUpdating ? '...' : '✅ Mark Done'}
+                        </button>
+                      ) : (
+                        <button
+                          className="btn btn-sm btn-secondary"
+                          style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                          onClick={() => handleUpdateOrderStatus(orderId, 'pending')}
+                          disabled={isUpdating}
+                          title="Revert status to Pending"
+                        >
+                          {isUpdating ? '...' : '↩️ To Pending'}
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               );
             })}
