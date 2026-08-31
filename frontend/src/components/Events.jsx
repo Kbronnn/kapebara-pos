@@ -15,6 +15,30 @@ function formatTime12(timeStr) {
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${p}`;
 }
 
+function getEventDuration(startTime) {
+  if (!startTime) return 3;
+  const [h] = startTime.split(':').map(Number);
+  if (h >= 22 || h === 0) return 1;
+  return 3;
+}
+
+function getEventEndTime(startTime, durationHours = null) {
+  if (!startTime) return '';
+  const dur = durationHours || getEventDuration(startTime);
+  const [h, m] = startTime.split(':').map(Number);
+  const totalMin = h * 60 + m + dur * 60;
+  const endH = Math.floor(totalMin / 60) % 24;
+  const endM = totalMin % 60;
+  return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+}
+
+function formatTimeRange(time24, durationHours = null) {
+  if (!time24) return '—';
+  const dur = durationHours || getEventDuration(time24);
+  const end = getEventEndTime(time24, dur);
+  return `${formatTime12(time24)} – ${formatTime12(end)} (${dur} ${dur === 1 ? 'hr' : 'hrs'})`;
+}
+
 export default function Events() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +106,7 @@ export default function Events() {
         title: evTitle.trim(),
         date: evDate,
         preferred_time: evTime,
+        duration_hours: getEventDuration(evTime),
         description: evDesc,
         is_private: evPrivate,
         max_participants: parseInt(evMax) || 30,
@@ -210,7 +235,7 @@ export default function Events() {
                       <td>{e.host_name || '—'}</td>
                       <td style={{ fontSize: '0.82rem' }}>{e.phone || '—'}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>{friendly}</td>
-                      <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{formatTime12(e.preferred_time)}</td>
+                      <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{formatTimeRange(e.preferred_time, e.duration_hours)}</td>
                       <td style={{ textAlign: 'center' }}>{e.max_participants || 30}</td>
                       <td>
                         {e.is_private

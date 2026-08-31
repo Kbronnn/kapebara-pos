@@ -42,6 +42,46 @@ function formatTime12(time24) {
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 }
 
+function getEventDuration(startTime) {
+  if (!startTime) return 3;
+  const [h] = startTime.split(':').map(Number);
+  // 10:00 PM (22:00) onward is limited to 1 hour due to 12:00 MN closing
+  if (h >= 22 || h === 0) return 1;
+  return 3;
+}
+
+function getEventEndTime(startTime, durationHours = null) {
+  if (!startTime) return '';
+  const dur = durationHours || getEventDuration(startTime);
+  const [h, m] = startTime.split(':').map(Number);
+  const totalMin = h * 60 + m + dur * 60;
+  const endH = Math.floor(totalMin / 60) % 24;
+  const endM = totalMin % 60;
+  return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+}
+
+function formatTimeRange(time24, durationHours = null) {
+  if (!time24) return '';
+  const dur = durationHours || getEventDuration(time24);
+  const end = getEventEndTime(time24, dur);
+  return `${formatTime12(time24)} – ${formatTime12(end)}`;
+}
+
+function getEventTimeStatus(ev) {
+  if (!ev.date) return 'upcoming';
+  const dur = ev.duration_hours || getEventDuration(ev.preferred_time);
+  const dateStr = ev.date.split('T')[0];
+  const [sy, sm, sd] = dateStr.split('-').map(Number);
+  const [sh, smin] = (ev.preferred_time || '00:00').split(':').map(Number);
+  const startDate = new Date(sy, sm - 1, sd, sh, smin, 0);
+  const endDate = new Date(startDate.getTime() + dur * 60 * 60 * 1000);
+  const now = new Date();
+
+  if (now > endDate) return 'ended';
+  if (now >= startDate && now <= endDate) return 'ongoing';
+  return 'upcoming';
+}
+
 function formatDateShort(dateStr) {
   if (!dateStr) return '—';
   return new Date(dateStr.split('T')[0] + 'T00:00:00').toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -129,7 +169,7 @@ function ShopCalendar({ customerId }) {
                     <div className="tooltip-title">📅 {monthName} {cell.d}, {calYear}</div>
                     {cell.evs.map((ev, i) => (
                       <div key={i} style={{ marginBottom: '6px', fontSize: '0.75rem' }}>
-                        <div className="tooltip-time">🕐 {ev.preferred_time ? formatTime12(ev.preferred_time) : 'All Day'}</div>
+                        <div className="tooltip-time">🕐 {ev.preferred_time ? formatTimeRange(ev.preferred_time, ev.duration_hours) : 'All Day'}</div>
                         <div style={{ fontWeight: 500 }}>{ev.is_private ? '🔒 Private Event' : ev.title}</div>
                       </div>
                     ))}
@@ -243,18 +283,33 @@ function EventsGrid({ customerId, customerName, isLoggedIn, onLoginClick }) {
         const isFull = spotsLeft <= 0;
         const isJoining = joiningId === ev.id;
         const alreadyJoined = joinSuccess === ev.id;
+        const dur = ev.duration_hours || getEventDuration(ev.preferred_time);
+        const timeStatus = getEventTimeStatus(ev);
+        const isOngoing = timeStatus === 'ongoing';
+        const isEnded = timeStatus === 'ended';
+
         return (
-          <div className="event-card" key={ev.id}>
-            <div className="event-type">{ev.type === 'shop' ? 'Shop Event' : 'Community Event'}</div>
+          <div className="event-card" key={ev.id} style={isEnded ? { opacity: 0.75 } : {}}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div className="event-type">{ev.type === 'shop' ? 'Shop Event' : 'Community Event'}</div>
+              {isOngoing && <span style={{ background: '#fff3cd', color: '#856404', padding: '2px 8px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: 700 }}>● Live Now</span>}
+              {isEnded && <span style={{ background: '#e0e0e0', color: '#666', padding: '2px 8px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: 700 }}>Concluded</span>}
+            </div>
             <div className="event-date">{new Date(ev.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</div>
-            {ev.preferred_time && <div className="event-time">🕐 {formatTime12(ev.preferred_time)}</div>}
+            {ev.preferred_time && (
+              <div className="event-time">
+                🕐 {formatTimeRange(ev.preferred_time, dur)} <span style={{ fontSize: '0.8em', color: 'var(--text-light)' }}>({dur} {dur === 1 ? 'hr' : 'hrs'})</span>
+              </div>
+            )}
             <h3 className="event-title">{ev.title}</h3>
             <p className="event-desc">{ev.description || 'No description provided.'}</p>
             <p style={{ fontSize: '0.8em', color: 'var(--text-light)', marginBottom: '6px' }}>Hosted by: {ev.host_name}</p>
             <p style={{ fontSize: '0.8em', color: 'var(--text-light)', marginBottom: '15px' }}>
               👥 <strong>{spotsLeft}</strong> of {ev.max_participants} spots remaining
             </p>
-            {!isLoggedIn
+            {isEnded
+              ? <button disabled style={{ opacity: .6, cursor: 'not-allowed', background: '#ccc', color: '#555' }}>Event Ended</button>
+              : !isLoggedIn
               ? <button onClick={onLoginClick} id={`join-btn-${ev.id}`}>Login to Join</button>
               : isFull
               ? <button disabled style={{ opacity: .6, cursor: 'not-allowed' }}>Event Full</button>
@@ -351,7 +406,7 @@ function MyEventsList({ customerId, customerName }) {
             </div>
             <p style={{ margin: '4px 0', fontSize: '0.82rem', color: 'var(--text-light)' }}>
               📅 {new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              {ev.preferred_time && ` at ${formatTime12(ev.preferred_time)}`}
+              {ev.preferred_time && ` • 🕐 ${formatTimeRange(ev.preferred_time, ev.duration_hours || getEventDuration(ev.preferred_time))}`}
             </p>
             <div style={{ display: 'flex', gap: '8px', marginTop: '10px', fontSize: '0.75rem' }}>
               <span style={{
@@ -625,6 +680,7 @@ export default function CustomerApp() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: hostForm.title, date: hostForm.date, preferred_time: hostForm.time,
+          duration_hours: getEventDuration(hostForm.time),
           phone: hostForm.phone, description: hostForm.desc, hostName: customerName || 'Customer',
           is_private: hostForm.isPrivate, max_participants: maxGuests, customer_id: customerId
         })
@@ -1303,7 +1359,18 @@ export default function CustomerApp() {
                           </label>
                         </div>
                         <div className="event-duration-note">
-                          ⏱ Events may use the venue for up to <strong>3 hours</strong> from the preferred start time.
+                          {(() => {
+                            const [h] = (hostForm.time || '14:00').split(':').map(Number);
+                            const isLate = h >= 22 || h === 0;
+                            if (isLate) {
+                              return (
+                                <span>⏱ Bookings at <strong>10:00 PM onward</strong> are limited to <strong>1 hour</strong> due to 12:00 MN closing time ({formatTimeRange(hostForm.time, 1)}).</span>
+                              );
+                            }
+                            return (
+                              <span>⏱ Events may use the venue for up to <strong>3 hours</strong> from the preferred start time ({formatTimeRange(hostForm.time, 3)}).</span>
+                            );
+                          })()}
                         </div>
                         <button type="submit" disabled={hostSubmitting}>{hostSubmitting ? 'Submitting…' : 'Submit Request'}</button>
                         {hostMsg.text && <div id="form-message" style={{ marginTop: '15px', fontWeight: 500, color: hostMsg.color }}>{hostMsg.text}</div>}

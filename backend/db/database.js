@@ -95,6 +95,7 @@ const eventSchema = new mongoose.Schema({
   phone:               { type: String, default: '' },
   is_private:          { type: Boolean, default: false },
   max_participants:    { type: Number, default: 30 },
+  duration_hours:      { type: Number, default: 3 },
   participant_names:   [{ type: String }],
   status:              { type: String, default: 'upcoming' },
   approval_notified:   { type: Boolean, default: false },

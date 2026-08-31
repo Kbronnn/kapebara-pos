@@ -38,22 +38,31 @@ router.get('/', async (req, res) => {
   }
 });
 
+function getEventDuration(startTime) {
+  if (!startTime) return 3;
+  const [h] = startTime.split(':').map(Number);
+  if (h >= 22 || h === 0) return 1;
+  return 3;
+}
+
 // ── GET calendar: approved events by date (for the live calendar) ─────────────
 router.get('/calendar', async (req, res) => {
   try {
     const events = await Event.find({ status: 'approved' })
       .sort({ date: 1, preferred_time: 1 })
-      .select('title date preferred_time is_private max_participants participants participant_names');
+      .select('title date preferred_time duration_hours is_private max_participants participants participant_names');
     
     // Group by date
     const calendar = {};
     events.forEach(e => {
       const key = e.date ? e.date.split('T')[0] : e.date;
       if (!calendar[key]) calendar[key] = [];
+      const dur = e.duration_hours || getEventDuration(e.preferred_time);
       calendar[key].push({
         id:               e.id,
         title:            e.is_private ? 'Private Event' : e.title,
         preferred_time:   e.preferred_time,
+        duration_hours:   dur,
         is_private:       e.is_private,
         spots_taken:      e.participants.length,
         max_participants: e.max_participants
@@ -191,17 +200,20 @@ router.post('/', async (req, res) => {
       }
     }
 
+    const duration = req.body.duration_hours ? parseInt(req.body.duration_hours) : getEventDuration(preferred_time);
+
     const event = await Event.create({
       title,
       description,
       date,
       preferred_time:   preferred_time   || '',
+      duration_hours:   duration,
       phone:            phone            || '',
       is_private:       is_private       === true || is_private === 'true',
       max_participants: proposedGuests,
-      type:             'customer',
+      type:             req.body.type    || 'customer',
       host_name:        hostName,
-      status:           'pending_approval',
+      status:           req.body.type === 'shop' ? 'approved' : 'pending_approval',
       customer_id:      customer_id      || null
     });
     res.status(201).json({ message: 'Event request submitted successfully!', id: event.id });
