@@ -205,6 +205,7 @@ function EventsGrid({ customerId, customerName, isLoggedIn, onLoginClick }) {
       const todayStr = `${dNow.getFullYear()}-${String(dNow.getMonth() + 1).padStart(2, '0')}-${String(dNow.getDate()).padStart(2, '0')}`;
       const visible = all.filter(ev => {
         if (ev.status === 'pending_approval') return false;
+        if (ev.status === 'rejected') return false;  // Rejected events must never appear publicly
         if (ev.is_private && (!customerId || ev.customer_id !== customerId)) return false;
         const dStr = ev.date ? ev.date.split('T')[0] : '';
         return dStr >= todayStr;
@@ -1091,19 +1092,32 @@ export default function CustomerApp() {
           {/* Connect with Us Section */}
           <section id="contacts" className="landing-section alt-bg" style={{ textAlign: 'center', padding: '80px 10%' }}>
             <div className="section-container">
-              <h2 className="section-title" style={{ fontFamily: "'Playfair Display', serif", fontSize: '2.8rem', color: '#4a3728', marginBottom: '40px' }}>Connect with Us</h2>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '60px', flexWrap: 'wrap', marginTop: '40px' }}>
+              <h2 className="section-title" style={{ fontFamily: "'Playfair Display', serif", fontSize: '2.8rem', color: '#4a3728', marginBottom: '12px' }}>Connect with Us</h2>
+              <div style={{ width: '48px', height: '2px', background: '#c8a96e', margin: '0 auto 48px' }} />
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '60px', flexWrap: 'wrap' }}>
                 <div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#d4a373', letterSpacing: '1px', marginBottom: '8px' }}>EMAIL:</div>
-                  <a href="mailto:kapebaraph@gmail.com" style={{ color: '#4a3728', fontWeight: 500, fontSize: '1.1rem', textDecoration: 'none' }}>kapebaraph@gmail.com</a>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 700, color: '#c0392b', letterSpacing: '1px', marginBottom: '8px' }}>
+                    <span>📍</span> ADDRESS:
+                  </div>
+                  <div style={{ color: '#4a3728', fontWeight: 400, fontSize: '1rem' }}>2 St. John Perpetual Village, Taguig City</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#d4a373', letterSpacing: '1px', marginBottom: '8px' }}>INSTAGRAM:</div>
-                  <a href="https://instagram.com/kapebara_ph" target="_blank" rel="noreferrer" style={{ color: '#4a3728', fontWeight: 500, fontSize: '1.1rem', textDecoration: 'none' }}>@kapebara_ph</a>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 700, color: '#2980b9', letterSpacing: '1px', marginBottom: '8px' }}>
+                    <span>✉️</span> EMAIL:
+                  </div>
+                  <a href="mailto:kapebaraph@gmail.com" style={{ color: '#4a3728', fontWeight: 400, fontSize: '1rem', textDecoration: 'none' }}>kapebaraph@gmail.com</a>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#d4a373', letterSpacing: '1px', marginBottom: '8px' }}>TIKTOK:</div>
-                  <a href="https://tiktok.com/@KapeBara_ph" target="_blank" rel="noreferrer" style={{ color: '#4a3728', fontWeight: 500, fontSize: '1.1rem', textDecoration: 'none' }}>@KapeBara_ph</a>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 700, color: '#8e44ad', letterSpacing: '1px', marginBottom: '8px' }}>
+                    <span>📸</span> INSTAGRAM:
+                  </div>
+                  <a href="https://instagram.com/kapebara_ph" target="_blank" rel="noreferrer" style={{ color: '#4a3728', fontWeight: 400, fontSize: '1rem', textDecoration: 'none' }}>@kapebara_ph</a>
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 700, color: '#16213e', letterSpacing: '1px', marginBottom: '8px' }}>
+                    <span>🎵</span> TIKTOK:
+                  </div>
+                  <a href="https://tiktok.com/@KapeBara_ph" target="_blank" rel="noreferrer" style={{ color: '#4a3728', fontWeight: 400, fontSize: '1rem', textDecoration: 'none' }}>@KapeBara_ph</a>
                 </div>
               </div>
             </div>
