@@ -58,7 +58,15 @@ async function startServer() {
     ? path.join(__dirname, '../frontend/dist')
     : path.join(__dirname, '../frontend');
 
-  app.use(express.static(staticDir));
+  app.use(express.static(staticDir, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+    }
+  }));
   app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
   // ── API Routes ────────────────────────────────────────────────────────────────
