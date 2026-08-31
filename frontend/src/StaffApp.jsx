@@ -131,7 +131,7 @@ export default function StaffApp() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Login failed');
 
-      sessionStorage.setItem('adminToken', data.adminId);
+      sessionStorage.setItem('adminToken', data.token || data.adminId);
       sessionStorage.setItem('adminUsername', data.username);
       sessionStorage.setItem('adminRole', data.role || 'staff');
 

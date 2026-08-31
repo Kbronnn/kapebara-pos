@@ -611,6 +611,7 @@ export default function CustomerApp() {
       if (!res.ok) throw new Error(data.error || 'Login failed');
       sessionStorage.setItem('customerId', data.customerId);
       sessionStorage.setItem('customerName', data.name);
+      if (data.token) sessionStorage.setItem('customerToken', data.token);
       setCustomerId(data.customerId);
       setCustomerName(data.name);
       setLoginEmail(''); setLoginPass('');
@@ -633,6 +634,7 @@ export default function CustomerApp() {
       const savedName = data.name || regName.trim();
       sessionStorage.setItem('customerId', data.customerId);
       sessionStorage.setItem('customerName', savedName);
+      if (data.token) sessionStorage.setItem('customerToken', data.token);
       setCustomerId(data.customerId);
       setCustomerName(savedName);
       setRegName(''); setRegEmail(''); setRegPass(''); setRegPhone('');
@@ -645,6 +647,7 @@ export default function CustomerApp() {
   const handleLogout = () => {
     sessionStorage.removeItem('customerId');
     sessionStorage.removeItem('customerName');
+    sessionStorage.removeItem('customerToken');
     setCustomerId(null); setCustomerName(''); setCustomer(null);
     setNotifications([]);
     setView('landing');
@@ -706,7 +709,12 @@ export default function CustomerApp() {
       if (settForm.password)  formData.append('password', settForm.password);
       if (avatarFile)         formData.append('avatar', avatarFile);
 
-      const res = await fetch(`${API_BASE}/customer/update?id=${customerId}`, { method: 'PUT', body: formData });
+      const custToken = sessionStorage.getItem('customerToken') || '';
+      const res = await fetch(`${API_BASE}/customer/update?id=${customerId}`, {
+        method: 'PUT',
+        headers: custToken ? { 'Authorization': `Bearer ${custToken}` } : {},
+        body: formData
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Update failed');
       setSettMsg('Account details updated successfully!');

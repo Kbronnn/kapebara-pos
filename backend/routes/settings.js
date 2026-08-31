@@ -1,5 +1,6 @@
 const express = require('express');
 const { ShopSettings } = require('../db/database');
+const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -12,7 +13,7 @@ async function getSettings() {
   return settings;
 }
 
-// GET current shop settings
+// GET current shop settings — public (customer portal needs this for event capacity)
 router.get('/', async (req, res) => {
   try {
     const settings = await getSettings();
@@ -22,8 +23,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// PUT update shop settings
-router.put('/', async (req, res) => {
+// PUT update shop settings — admin only
+router.put('/', requireAdmin, async (req, res) => {
   const { max_people_per_event, max_concurrent_events, shop_open_time, shop_close_time } = req.body;
   try {
     let settings = await ShopSettings.findOne();
