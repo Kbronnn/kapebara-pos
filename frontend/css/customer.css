@@ -97,13 +97,14 @@ body {
 
 .landing-hero {
   flex: 1;
+  min-height: 75vh;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  background: linear-gradient(to right, rgba(250, 247, 242, 0.9), rgba(250, 247, 242, 0.2)), url('../assets/cozy_hero_bg.png');
+  background: linear-gradient(to right, rgba(250, 247, 242, 0.92), rgba(250, 247, 242, 0.3)), url('../assets/cozy_hero_bg.png');
   background-size: cover;
   background-position: center;
-  padding: 0 10%;
+  padding: clamp(40px, 6vw, 80px) clamp(16px, 8vw, 10%);
   position: relative;
 }
 
@@ -114,16 +115,16 @@ body {
 
 .hero-content h1 {
   font-family: 'Playfair Display', serif;
-  font-size: 4rem;
+  font-size: clamp(2rem, 5vw, 3.8rem);
   color: #4a3728;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   line-height: 1.2;
 }
 
 .hero-content p {
-  font-size: 1.25rem;
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
   color: #6b5a4a;
-  margin-bottom: 40px;
+  margin-bottom: 30px;
   line-height: 1.7;
 }
 
@@ -131,9 +132,9 @@ body {
   background: #4a3728;
   color: #faf7f2;
   border: none;
-  padding: 18px 45px;
+  padding: 16px 40px;
   border-radius: 50px;
-  font-size: 1.1rem;
+  font-size: clamp(0.95rem, 1.2vw, 1.1rem);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -148,7 +149,7 @@ body {
 
 
 .landing-section {
-  padding: 100px 10%;
+  padding: clamp(45px, 6vw, 90px) clamp(16px, 6vw, 10%);
   background-color: #faf7f2;
 }
 
@@ -159,13 +160,14 @@ body {
 .section-container {
   max-width: 1000px;
   margin: 0 auto;
+  width: 100%;
 }
 
 .section-title {
   font-family: 'Playfair Display', serif;
-  font-size: 2.8rem;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
   color: #4a3728;
-  margin-bottom: 50px;
+  margin-bottom: 40px;
   text-align: center;
   position: relative;
 }
@@ -176,7 +178,7 @@ body {
   width: 60px;
   height: 3px;
   background: #d4a373;
-  margin: 15px auto 0;
+  margin: 12px auto 0;
   border-radius: 2px;
 }
 

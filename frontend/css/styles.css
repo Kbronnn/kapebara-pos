@@ -33,7 +33,8 @@ body {
   color: var(--text-main);
   display: flex;
   min-height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 a { text-decoration: none; color: inherit; }
 button { cursor: pointer; border: none; background: none; font-family: inherit; }
@@ -130,9 +131,9 @@ input, select, textarea { font-family: inherit; }
 .main-content {
   margin-left: var(--sidebar-w);
   flex: 1;
-  width: calc(100vw - var(--sidebar-w));
-  height: 100vh;
-  overflow: hidden;
+  min-width: 0;
+  width: auto;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
@@ -146,7 +147,7 @@ input, select, textarea { font-family: inherit; }
 }
 .page-title {
   font-family: 'Playfair Display', serif;
-  font-size: 1.7rem;
+  font-size: clamp(1.3rem, 3vw, 1.7rem);
   font-weight: 700;
   color: var(--espresso);
 }
@@ -162,7 +163,7 @@ input, select, textarea { font-family: inherit; }
   transition: transform .15s;
 }
 .top-bar-badge:hover { transform: scale(1.04); }
-.view { display: none; padding: 20px 28px 28px; flex: 1; overflow-y: auto; width: 100%; box-sizing: border-box; }
+.view { display: none; padding: 20px 28px 40px; flex: 1; width: 100%; box-sizing: border-box; }
 .view.active { display: flex; flex-direction: column; width: 100%; align-items: stretch; }
 
 /* ── Cards ─────────────────────────────────────────────────────────────── */
@@ -184,7 +185,7 @@ input, select, textarea { font-family: inherit; }
 /* ── KPI Grid ──────────────────────────────────────────────────────────── */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   margin-bottom: 20px;
 }
@@ -220,14 +221,14 @@ input, select, textarea { font-family: inherit; }
 /* ── Charts Grid ───────────────────────────────────────────────────────── */
 .charts-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 16px;
   margin-bottom: 20px;
 }
 .chart-container { position: relative; height: 240px; }
 
 /* ── Tables ────────────────────────────────────────────────────────────── */
-.table-wrap { overflow-x: auto; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 table { width: 100%; border-collapse: collapse; font-size: .88rem; }
 thead th {
   background: var(--cream);
@@ -292,12 +293,12 @@ tbody tr:hover { background: #fdf8f2; }
 /* ── POS Layout ────────────────────────────────────────────────────────── */
 .pos-layout {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
   gap: 16px;
-  height: calc(100vh - 100px);
+  align-items: start;
 }
-.pos-menu { display: flex; flex-direction: column; overflow: hidden; }
-.pos-cart { display: flex; flex-direction: column; overflow: hidden; }
+.pos-menu { display: flex; flex-direction: column; }
+.pos-cart { display: flex; flex-direction: column; }
 
 .category-tabs {
   display: flex;
