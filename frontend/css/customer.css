@@ -1176,20 +1176,77 @@ textarea:focus {
   gap: 15px;
 }
 
-/* ── Responsive Mobile & Tablet Design ────────────────────────────────────── */
-@media (max-width: 992px) {
+/* ── 2-Tier Device Adaptation Architecture ───────────────────────────────── */
+
+/* ── TIER 1: LAPTOPS, DESKTOPS & TABLETS (min-width: 768px) ── */
+@media (min-width: 768px) {
   .landing-header {
-    padding: 14px 20px;
-    flex-wrap: wrap;
-    gap: 12px;
+    padding: 18px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
   .landing-nav {
-    width: 100%;
     display: flex;
+    gap: 32px;
+  }
+  .landing-nav a {
+    background: transparent;
+    padding: 0;
+    font-size: 0.95rem;
+  }
+  .about-content {
+    display: flex;
+    flex-direction: row;
+    gap: 48px;
+    align-items: center;
+  }
+  .about-content p {
+    flex: 3;
+  }
+  .hours-box {
+    flex: 2;
+    padding: 35px;
+  }
+  .services-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  .portal-ordering-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 28px;
+  }
+  .portal-events-layout {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
+  }
+}
+
+/* ── TIER 2: MOBILE PHONES (< 768px) ── */
+@media (max-width: 767px) {
+  .landing-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+  .landing-brand {
+    grid-column: 1;
+  }
+  .landing-login-btn {
+    grid-column: 2;
+    padding: 7px 18px;
+    font-size: 0.82rem;
+  }
+  .landing-nav {
+    grid-column: 1 / -1;
+    width: 100%;
     overflow-x: auto;
     white-space: nowrap;
-    gap: 10px;
-    padding-bottom: 6px;
+    display: flex;
+    gap: 8px;
+    padding: 4px 0 2px;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
@@ -1197,40 +1254,36 @@ textarea:focus {
     display: none;
   }
   .landing-nav a {
-    flex-shrink: 0;
-    font-size: 0.85rem;
     padding: 6px 14px;
     background: rgba(140, 107, 78, 0.08);
     border-radius: 20px;
+    font-size: 0.8rem;
+    flex-shrink: 0;
   }
   .landing-hero {
-    padding: 60px 20px;
+    padding: 40px 16px;
   }
   .hero-content h1 {
-    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-size: 2rem;
   }
   .hero-content p {
-    font-size: 1.05rem;
+    font-size: 0.95rem;
   }
   .about-content {
     flex-direction: column;
-    gap: 30px;
-  }
-  .portal-container {
-    padding: 20px 16px;
-  }
-  .portal-ordering-layout {
-    grid-template-columns: 1fr;
     gap: 20px;
   }
-}
-
-@media (max-width: 768px) {
+  .hours-box {
+    padding: 22px 18px;
+  }
   #portal-header {
     flex-direction: column;
     align-items: flex-start !important;
     gap: 12px;
     padding-bottom: 14px;
+  }
+  .portal-container {
+    padding: 14px 12px;
   }
   .portal-tabs-header {
     overflow-x: auto;
@@ -1249,15 +1302,23 @@ textarea:focus {
     gap: 4px;
   }
   .portal-tab-btn {
-    padding: 10px 14px;
-    font-size: 0.85rem;
+    padding: 9px 13px;
+    font-size: 0.82rem;
   }
   .portal-main-card {
-    padding: 20px 16px;
-    border-radius: 16px;
+    padding: 18px 14px;
+    border-radius: 14px;
+  }
+  .portal-ordering-layout {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .portal-events-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
   }
   .loyalty-card {
-    padding: 20px 16px;
+    padding: 18px 14px;
   }
   .loyalty-profile {
     flex-direction: column;
@@ -1267,19 +1328,19 @@ textarea:focus {
   }
   .points-display {
     text-align: center;
-    font-size: 2.8rem;
-    margin-top: 14px;
+    font-size: 2.6rem;
+    margin-top: 12px;
   }
   .events-grid,
   .menu-products-grid,
   .ratings-display-grid,
   .services-grid {
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
+    grid-template-columns: 1fr !important;
   }
   .auth-container {
-    width: 92% !important;
-    margin: 40px auto !important;
-    padding: 24px 18px !important;
+    width: 94% !important;
+    margin: 30px auto !important;
+    padding: 22px 16px !important;
   }
   .form-row-2 {
     grid-template-columns: 1fr;
@@ -1289,16 +1350,10 @@ textarea:focus {
 
 @media (max-width: 480px) {
   .hero-content h1 {
-    font-size: 1.8rem;
+    font-size: 1.75rem;
   }
   .section-title {
-    font-size: 1.8rem !important;
-  }
-  .events-grid,
-  .menu-products-grid,
-  .ratings-display-grid,
-  .services-grid {
-    grid-template-columns: 1fr !important;
+    font-size: 1.75rem !important;
   }
   .menu-cat-tabs,
   .portal-menu-filters {
