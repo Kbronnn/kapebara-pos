@@ -1183,27 +1183,6 @@ export default function CustomerApp() {
   return (
     <div className="portal-container">
 
-      {/* Approval Notification Banner */}
-      {notifications.length > 0 && (
-        <div id="approval-banner" style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: '#6b5a4a', marginBottom: '8px' }}>📬 Event Updates</div>
-          {notifications.map((ev, i) => {
-            const isApproved = ev.status === 'approved';
-            return (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px 18px', borderRadius: '10px', background: isApproved ? '#d4edda' : '#fde8e8', border: `1.5px solid ${isApproved ? '#28a745' : '#e8a0a0'}`, marginBottom: '10px' }}>
-                <span style={{ fontSize: '1.3rem', flexShrink: 0 }}>{isApproved ? '🎉' : '❌'}</span>
-                <div style={{ flex: 1, fontSize: '.88rem', color: isApproved ? '#155724' : '#922b2b', lineHeight: 1.5 }}
-                  dangerouslySetInnerHTML={{ __html: isApproved
-                    ? `Your event <strong>"${ev.title}"</strong> on ${formatDateShort(ev.date)} has been <strong>approved!</strong> See you at KapeBara ☕`
-                    : `Your event <strong>"${ev.title}"</strong> on ${formatDateShort(ev.date)} was <strong>not approved</strong> at this time. Please contact us for details.`
-                  }} />
-                <button onClick={() => setNotifications(n => n.filter((_, idx) => idx !== i))} style={{ background: 'transparent', border: 'none', color: isApproved ? '#155724' : '#922b2b', fontSize: '1rem', cursor: 'pointer', flexShrink: 0 }}>✕</button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
       {/* LANDING VIEW */}
       {view === 'landing' && (
         <div id="landing-view">
