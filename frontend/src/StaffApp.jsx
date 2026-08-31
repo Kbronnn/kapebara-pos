@@ -64,6 +64,7 @@ export default function StaffApp() {
   // Login form
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
+  const [showStaffPass, setShowStaffPass] = useState(false);
   const [loginMsg, setLoginMsg] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
@@ -191,8 +192,37 @@ export default function StaffApp() {
             </div>
             <div className="form-group">
               <label className="form-label">Password</label>
-              <input type="password" className="form-control" required value={loginPass}
-                onChange={e => setLoginPass(e.target.value)} />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                  type={showStaffPass ? 'text' : 'password'}
+                  className="form-control"
+                  required
+                  value={loginPass}
+                  onChange={e => setLoginPass(e.target.value)}
+                  style={{ paddingRight: '42px', width: '100%' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowStaffPass(!showStaffPass)}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '1.15rem',
+                    padding: '4px 6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#666',
+                    zIndex: 2
+                  }}
+                  title={showStaffPass ? 'Hide password' : 'Show password'}
+                >
+                  {showStaffPass ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
             </div>
             <button type="submit" className="btn btn-primary"
               style={{ width: '100%', justifyContent: 'center', marginTop: '10px' }}

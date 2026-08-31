@@ -180,9 +180,13 @@ router.post('/:id/cancel', async (req, res) => {
 // ── GET all events joined by a customer (for notification bell & reminders) ──
 router.get('/joined/:customerId', async (req, res) => {
   try {
+    const d = new Date();
+    const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
     const events = await Event.find({
       participants: req.params.customerId,
-      status: { $in: ['approved', 'upcoming'] }
+      status: { $in: ['approved', 'upcoming'] },
+      date: { $gte: todayStr }
     }).sort({ date: 1, preferred_time: 1 });
     res.json(events);
   } catch (err) {

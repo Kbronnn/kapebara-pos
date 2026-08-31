@@ -522,12 +522,16 @@ export default function CustomerApp() {
   // Login fields
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPass, setLoginPass] = useState('');
+  const [showLoginPass, setShowLoginPass] = useState(false);
 
   // Register fields
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPass, setRegPass] = useState('');
+  const [regConfirmPass, setRegConfirmPass] = useState('');
   const [regPhone, setRegPhone] = useState('');
+  const [showRegPass, setShowRegPass] = useState(false);
+  const [showRegConfirmPass, setShowRegConfirmPass] = useState(false);
 
   // Customer profile
   const [customer, setCustomer] = useState(null);
@@ -555,6 +559,7 @@ export default function CustomerApp() {
 
   // Account settings
   const [settForm, setSettForm] = useState({ name: '', email: '', phone: '', birthdate: '', password: '' });
+  const [showSettPass, setShowSettPass] = useState(false);
   const [settMsg, setSettMsg] = useState('');
   const [settLoading, setSettLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
@@ -603,7 +608,14 @@ export default function CustomerApp() {
       const res = await fetch(`${API_BASE}/events/joined/${cId}`);
       if (res.ok) {
         const data = await res.json();
-        setJoinedEvents(data);
+        const dNow = new Date();
+        const todayStr = `${dNow.getFullYear()}-${String(dNow.getMonth() + 1).padStart(2, '0')}-${String(dNow.getDate()).padStart(2, '0')}`;
+        // Filter out past events so only current and upcoming events appear
+        const upcomingOnly = data.filter(ev => {
+          const dStr = ev.date ? ev.date.split('T')[0] : '';
+          return dStr >= todayStr;
+        });
+        setJoinedEvents(upcomingOnly);
       }
     } catch {}
   };
@@ -715,6 +727,31 @@ export default function CustomerApp() {
   const handleRegister = async (e) => {
     e.preventDefault();
     setAuthLoading(true); setAuthMsg('');
+
+    if (!regName.trim() || !regEmail.trim() || !regPass) {
+      setAuthMsg('Please fill in all required fields.');
+      setAuthLoading(false);
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail.trim())) {
+      setAuthMsg('Please enter a valid email address.');
+      setAuthLoading(false);
+      return;
+    }
+
+    if (regPass.length < 6) {
+      setAuthMsg('Password must be at least 6 characters.');
+      setAuthLoading(false);
+      return;
+    }
+
+    if (regPass !== regConfirmPass) {
+      setAuthMsg('Passwords do not match. Please verify your password.');
+      setAuthLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/customer/register`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -728,7 +765,7 @@ export default function CustomerApp() {
       if (data.token) sessionStorage.setItem('customerToken', data.token);
       setCustomerId(data.customerId);
       setCustomerName(savedName);
-      setRegName(''); setRegEmail(''); setRegPass(''); setRegPhone('');
+      setRegName(''); setRegEmail(''); setRegPass(''); setRegConfirmPass(''); setRegPhone('');
       setView('portal');
       setActiveTab('tab-benefits');
     } catch (err) { setAuthMsg(err.message); }
@@ -1239,7 +1276,37 @@ export default function CustomerApp() {
                 </div>
                 <div className="form-group">
                   <label>Password</label>
-                  <input type="password" id="login-password" required value={loginPass} onChange={e => setLoginPass(e.target.value)} />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type={showLoginPass ? 'text' : 'password'}
+                      id="login-password"
+                      required
+                      value={loginPass}
+                      onChange={e => setLoginPass(e.target.value)}
+                      style={{ paddingRight: '44px', width: '100%' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPass(!showLoginPass)}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '1.15rem',
+                        padding: '4px 6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#666',
+                        zIndex: 2
+                      }}
+                      title={showLoginPass ? 'Hide password' : 'Show password'}
+                    >
+                      {showLoginPass ? '👁️' : '👁️‍🗨️'}
+                    </button>
+                  </div>
                 </div>
                 <button type="submit" disabled={authLoading}>{authLoading ? 'Logging in…' : 'Login'}</button>
                 <p>Don't have an account? <a href="#" onClick={e => { e.preventDefault(); setAuthMode('register'); setAuthMsg(''); }}>Register</a></p>
@@ -1248,19 +1315,85 @@ export default function CustomerApp() {
               <form id="register-form" onSubmit={handleRegister}>
                 <div className="form-group">
                   <label>Full Name</label>
-                  <input type="text" id="reg-name" required value={regName} onChange={e => setRegName(e.target.value)} />
+                  <input type="text" id="reg-name" required placeholder="e.g. Juan Dela Cruz" value={regName} onChange={e => setRegName(e.target.value)} />
                 </div>
                 <div className="form-group">
                   <label>Email</label>
-                  <input type="email" id="reg-email" required value={regEmail} onChange={e => setRegEmail(e.target.value)} />
+                  <input type="email" id="reg-email" required placeholder="e.g. juan@example.com" value={regEmail} onChange={e => setRegEmail(e.target.value)} />
                 </div>
                 <div className="form-group">
-                  <label>Password</label>
-                  <input type="password" id="reg-password" required value={regPass} onChange={e => setRegPass(e.target.value)} />
+                  <label>Password <span style={{ fontSize: '0.8em', color: '#888' }}>(min. 6 characters)</span></label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type={showRegPass ? 'text' : 'password'}
+                      id="reg-password"
+                      required
+                      placeholder="Enter password"
+                      value={regPass}
+                      onChange={e => setRegPass(e.target.value)}
+                      style={{ paddingRight: '44px', width: '100%' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegPass(!showRegPass)}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '1.15rem',
+                        padding: '4px 6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#666',
+                        zIndex: 2
+                      }}
+                      title={showRegPass ? 'Hide password' : 'Show password'}
+                    >
+                      {showRegPass ? '👁️' : '👁️‍🗨️'}
+                    </button>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Confirm Password</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type={showRegConfirmPass ? 'text' : 'password'}
+                      id="reg-confirm-password"
+                      required
+                      placeholder="Confirm password"
+                      value={regConfirmPass}
+                      onChange={e => setRegConfirmPass(e.target.value)}
+                      style={{ paddingRight: '44px', width: '100%' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegConfirmPass(!showRegConfirmPass)}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '1.15rem',
+                        padding: '4px 6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#666',
+                        zIndex: 2
+                      }}
+                      title={showRegConfirmPass ? 'Hide password' : 'Show password'}
+                    >
+                      {showRegConfirmPass ? '👁️' : '👁️‍🗨️'}
+                    </button>
+                  </div>
                 </div>
                 <div className="form-group">
                   <label>Phone</label>
-                  <input type="tel" id="reg-phone" value={regPhone} onChange={e => setRegPhone(formatPhoneNumber(e.target.value))} />
+                  <input type="tel" id="reg-phone" placeholder="e.g. 0919-123-4567" value={regPhone} onChange={e => setRegPhone(formatPhoneNumber(e.target.value))} />
                 </div>
                 <button type="submit" disabled={authLoading}>{authLoading ? 'Registering…' : 'Register'}</button>
                 <p>Already have an account? <a href="#" onClick={e => { e.preventDefault(); setAuthMode('login'); setAuthMsg(''); }}>Login</a></p>
@@ -1528,7 +1661,36 @@ export default function CustomerApp() {
                     </div>
                     <div className="form-group">
                       <label>New Password <span style={{ fontSize: '0.8em', color: '#aaa' }}>(leave blank to keep current)</span></label>
-                      <input type="password" id="settings-password" value={settForm.password} onChange={e => setSettForm(f => ({ ...f, password: e.target.value }))} />
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <input
+                          type={showSettPass ? 'text' : 'password'}
+                          id="settings-password"
+                          value={settForm.password}
+                          onChange={e => setSettForm(f => ({ ...f, password: e.target.value }))}
+                          style={{ paddingRight: '44px', width: '100%' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowSettPass(!showSettPass)}
+                          style={{
+                            position: 'absolute',
+                            right: '10px',
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '1.15rem',
+                            padding: '4px 6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#666',
+                            zIndex: 2
+                          }}
+                          title={showSettPass ? 'Hide password' : 'Show password'}
+                        >
+                          {showSettPass ? '👁️' : '👁️‍🗨️'}
+                        </button>
+                      </div>
                     </div>
                     <button type="submit" disabled={settLoading}>{settLoading ? 'Updating…' : 'Update Account Details'}</button>
                     {settMsg && <div id="settings-message" style={{ fontWeight: 500, color: settMsg.includes('success') ? 'var(--success)' : 'red' }}>{settMsg}</div>}
