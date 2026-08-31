@@ -286,7 +286,7 @@ export default function StaffApp() {
       <main className="main-content" id="main-content">
         <header className="top-bar">
           <div className="top-bar-left" style={{ display: 'flex', alignItems: 'center' }}>
-            <button className="mobile-nav-toggle" style={{ display: 'none' }} onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
+            <button className="mobile-nav-toggle" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Toggle navigation menu">☰</button>
             <h1 className="page-title" id="page-title">{pageTitle}</h1>
           </div>
           <div className="top-bar-right">

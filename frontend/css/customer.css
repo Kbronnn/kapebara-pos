@@ -1092,6 +1092,25 @@ textarea:focus {
   border-color: var(--accent);
 }
 
+.portal-ordering-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+.portal-events-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 30px;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
 /* ── Responsive Mobile & Tablet Design ────────────────────────────────────── */
 @media (max-width: 992px) {
   .landing-header {
@@ -1123,13 +1142,21 @@ textarea:focus {
     padding: 60px 20px;
   }
   .hero-content h1 {
-    font-size: 2.3rem;
+    font-size: clamp(2rem, 5vw, 3.5rem);
   }
   .hero-content p {
-    font-size: 1rem;
+    font-size: 1.05rem;
+  }
+  .about-content {
+    flex-direction: column;
+    gap: 30px;
   }
   .portal-container {
     padding: 20px 16px;
+  }
+  .portal-ordering-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
   }
 }
 
@@ -1182,12 +1209,16 @@ textarea:focus {
   .menu-products-grid,
   .ratings-display-grid,
   .services-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
   }
   .auth-container {
     width: 92% !important;
     margin: 40px auto !important;
     padding: 24px 18px !important;
+  }
+  .form-row-2 {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 }
 
@@ -1198,12 +1229,28 @@ textarea:focus {
   .section-title {
     font-size: 1.8rem !important;
   }
+  .events-grid,
+  .menu-products-grid,
+  .ratings-display-grid,
+  .services-grid {
+    grid-template-columns: 1fr !important;
+  }
   .menu-cat-tabs,
   .portal-menu-filters {
     overflow-x: auto;
     white-space: nowrap;
     width: 100%;
     padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cal-header-container {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start !important;
+  }
+  .cal-controls {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 

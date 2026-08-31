@@ -1290,7 +1290,7 @@ export default function CustomerApp() {
             {activeTab === 'tab-events' && (
               <div id="tab-events" className="portal-tab-panel active">
                 <h2 className="section-title" style={{ marginBottom: '24px', borderBottom: 'none' }}>Events & Booking</h2>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '30px' }}>
+                <div className="portal-events-layout">
                   <div>
                     <h3 style={{ fontFamily: "'Playfair Display', serif", color: 'var(--accent)', marginBottom: '16px' }}>Upcoming Events</h3>
                     <div className="events-grid" id="events-grid">
@@ -1314,7 +1314,7 @@ export default function CustomerApp() {
                           <label htmlFor="event-title">Event Title</label>
                           <input type="text" id="event-title" required placeholder="e.g. Birthday Party, Study Group" value={hostForm.title} onChange={e => setHostForm(f => ({ ...f, title: e.target.value }))} />
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                        <div className="form-row-2">
                           <div className="form-group">
                             <label htmlFor="event-date">Proposed Date</label>
                             <input type="date" id="event-date" required value={hostForm.date} onChange={e => setHostForm(f => ({ ...f, date: e.target.value }))} />
@@ -1322,7 +1322,12 @@ export default function CustomerApp() {
                           <div className="form-group">
                             <label htmlFor="event-time">Preferred Start Time</label>
                             <select id="event-time" value={hostForm.time} onChange={e => setHostForm(f => ({ ...f, time: e.target.value }))}>
-                              {['14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00','22:30','23:00','23:30','00:00'].map(t => {
+                              {[
+                                '14:00','14:30','15:00','15:30','16:00','16:30',
+                                '17:00','17:30','18:00','18:30','19:00','19:30',
+                                '20:00','20:30','21:00','21:30','22:00','22:30',
+                                '23:00'
+                              ].map(t => {
                                 const [h, m] = t.split(':').map(Number);
                                 const label = `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
                                 return <option key={t} value={t}>{label}</option>;
@@ -1402,7 +1407,7 @@ export default function CustomerApp() {
                 </div>
 
                 {/* Two-column: product grid + cart */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 300px', gap: '24px', alignItems: 'start' }}>
+                <div className="portal-ordering-layout">
                   {/* Product grid */}
                   <div>
                     <div className="menu-products-grid" id="portal-menu-grid">
