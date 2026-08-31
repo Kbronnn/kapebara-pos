@@ -94,6 +94,111 @@ function formatPhoneNumber(val) {
   return `${digits.slice(0, 4)}-${digits.slice(4, 7)}-${digits.slice(7, 11)}`;
 }
 
+// ── Custom Popup Confirmation Modal (Replaces browser alert/confirm) ─────────
+function ConfirmModal({ isOpen, title, message, confirmText = 'Confirm', cancelText = 'Cancel', isDanger = true, onConfirm, onCancel, loading = false }) {
+  if (!isOpen) return null;
+  return (
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(30, 20, 15, 0.65)',
+      backdropFilter: 'blur(5px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 99999,
+      padding: '20px',
+      animation: 'fadeIn 0.2s ease-out'
+    }} onClick={onCancel}>
+      <div style={{
+        background: '#fffcf7',
+        borderRadius: '20px',
+        maxWidth: '430px',
+        width: '100%',
+        padding: '28px 24px',
+        boxShadow: '0 24px 48px rgba(0,0,0,0.25)',
+        border: '1.5px solid #eeddcc',
+        textAlign: 'center',
+        position: 'relative'
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{
+          width: '58px',
+          height: '58px',
+          borderRadius: '50%',
+          background: isDanger ? '#fdecea' : '#fff3cd',
+          color: isDanger ? '#c0392b' : '#d4a017',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '1.8rem',
+          margin: '0 auto 16px',
+          boxShadow: isDanger ? '0 4px 12px rgba(192,57,43,0.15)' : '0 4px 12px rgba(212,160,23,0.15)'
+        }}>
+          {isDanger ? '⚠️' : '❓'}
+        </div>
+        <h3 style={{
+          fontFamily: "'Playfair Display', serif",
+          fontSize: '1.35rem',
+          color: 'var(--espresso, #4a3728)',
+          margin: '0 0 10px 0',
+          fontWeight: 700
+        }}>
+          {title}
+        </h3>
+        <p style={{
+          fontSize: '0.92rem',
+          color: 'var(--text-light, #666)',
+          lineHeight: 1.55,
+          margin: '0 0 24px 0'
+        }}>
+          {message}
+        </p>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={loading}
+            style={{
+              flex: 1,
+              padding: '12px 18px',
+              borderRadius: '12px',
+              border: '1.5px solid #ddd',
+              background: '#f8f8f8',
+              color: '#555',
+              fontSize: '0.92rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            {cancelText}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            style={{
+              flex: 1,
+              padding: '12px 18px',
+              borderRadius: '12px',
+              border: 'none',
+              background: isDanger ? '#c0392b' : '#d4a373',
+              color: '#fff',
+              fontSize: '0.92rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              boxShadow: isDanger ? '0 4px 12px rgba(192,57,43,0.3)' : '0 4px 12px rgba(212,163,115,0.3)'
+            }}
+          >
+            {loading ? 'Processing…' : confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Shop Calendar Component ───────────────────────────────────────────────────
 function ShopCalendar({ customerId }) {
   const now = new Date();
@@ -195,6 +300,7 @@ function EventsGrid({ customerId, customerName, isLoggedIn, onLoginClick }) {
   const [joinSuccess, setJoinSuccess] = useState(null); // eventId of just-joined event
   const [joiningId, setJoiningId] = useState(null);
   const [joinError, setJoinError] = useState(null);
+  const [leaveConfirm, setLeaveConfirm] = useState(null); // { eventId, title }
 
   const loadEvents = useCallback(async () => {
     try {
@@ -246,10 +352,9 @@ function EventsGrid({ customerId, customerName, isLoggedIn, onLoginClick }) {
     }
   };
 
-  if (!events.length) return <p style={{ textAlign: 'center', width: '100%', gridColumn: '1/-1' }}>No upcoming events at the moment.</p>;
-
   return (
     <>
+      {!events.length && <p style={{ textAlign: 'center', width: '100%', gridColumn: '1/-1' }}>No upcoming events at the moment.</p>}
       {joinSuccess && (
         <div style={{
           gridColumn: '1/-1',
@@ -320,17 +425,7 @@ function EventsGrid({ customerId, customerName, isLoggedIn, onLoginClick }) {
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button disabled style={{ background: '#a5d6a7', color: '#1b5e20', cursor: 'default', opacity: 1, flex: 1 }}>✅ Joined!</button>
                   <button
-                    onClick={async () => {
-                      if (!window.confirm(`Are you sure you want to cancel your participation in "${ev.title}"?`)) return;
-                      try {
-                        await fetch(`${API_BASE}/events/${ev.id}/leave`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ customerId, participant_name: customerName })
-                        });
-                        loadEvents();
-                      } catch {}
-                    }}
+                    onClick={() => setLeaveConfirm({ eventId: ev.id, title: ev.title })}
                     style={{ background: '#fde8e8', color: '#c0392b', border: '1px solid #f5c6c6', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}
                     title="Leave event / cancel your spot"
                   >
@@ -345,6 +440,27 @@ function EventsGrid({ customerId, customerName, isLoggedIn, onLoginClick }) {
           </div>
         );
       })}
+      <ConfirmModal
+        isOpen={!!leaveConfirm}
+        title="Leave Event?"
+        message={leaveConfirm ? `Are you sure you want to cancel your participation in "${leaveConfirm.title}"? This will free up your spot.` : ''}
+        confirmText="Yes, Leave"
+        cancelText="Keep My Spot"
+        isDanger={true}
+        onConfirm={async () => {
+          if (!leaveConfirm) return;
+          try {
+            await fetch(`${API_BASE}/events/${leaveConfirm.eventId}/leave`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ customerId, participant_name: customerName })
+            });
+            loadEvents();
+          } catch {}
+          setLeaveConfirm(null);
+        }}
+        onCancel={() => setLeaveConfirm(null)}
+      />
     </>
   );
 }
@@ -354,6 +470,7 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
   const [myEvents, setMyEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState(null);
+  const [cancelConfirm, setCancelConfirm] = useState(null); // { eventId, title }
 
   const loadMyEvents = useCallback(async () => {
     try {
@@ -387,9 +504,15 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
     if (customerId || customerName) loadMyEvents();
   }, [customerId, customerName, loadMyEvents]);
 
-  const handleCancel = async (eventId, eventTitle) => {
-    if (!window.confirm(`Are you sure you want to cancel your booking request for "${eventTitle}"?`)) return;
+  const handleCancel = (eventId, eventTitle) => {
+    setCancelConfirm({ eventId, title: eventTitle });
+  };
+
+  const doCancel = async () => {
+    if (!cancelConfirm) return;
+    const { eventId } = cancelConfirm;
     setCancellingId(eventId);
+    setCancelConfirm(null);
     try {
       const res = await fetch(`${API_BASE}/events/${eventId}/cancel`, {
         method: 'POST',
@@ -411,6 +534,7 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
   if (!myEvents.length) return <p style={{ color: '#aaa', fontSize: '0.9rem' }}>You haven't requested any events yet.</p>;
 
   return (
+    <>
     <div style={{ display: 'grid', gap: '14px', marginTop: '10px' }}>
       {myEvents.map(ev => {
         const isApproved = ev.status === 'approved' || ev.status === 'upcoming';
@@ -506,6 +630,17 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
         );
       })}
     </div>
+    <ConfirmModal
+      isOpen={!!cancelConfirm}
+      title="Cancel Booking?"
+      message={cancelConfirm ? `Are you sure you want to cancel your booking request for "${cancelConfirm.title}"? The event organizer will be notified.` : ''}
+      confirmText="Yes, Cancel It"
+      cancelText="Keep Booking"
+      isDanger={true}
+      onConfirm={doCancel}
+      onCancel={() => setCancelConfirm(null)}
+    />
+  </>
   );
 }
 
@@ -538,6 +673,7 @@ export default function CustomerApp() {
   const [notifications, setNotifications] = useState([]);
   const [joinedEvents, setJoinedEvents] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [bellLeaveConfirm, setBellLeaveConfirm] = useState(null); // { eventId, title }
 
   // Menu state
   const [menuProducts, setMenuProducts] = useState([]);
@@ -1522,17 +1658,7 @@ export default function CustomerApp() {
                             Hosted by: {ev.host_name}
                           </div>
                           <button
-                            onClick={async () => {
-                              if (!window.confirm(`Are you sure you want to cancel your spot in "${ev.title}"?`)) return;
-                              try {
-                                await fetch(`${API_BASE}/events/${ev.id}/leave`, {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ customerId, participant_name: customer?.name })
-                                });
-                                loadJoinedEvents(customerId);
-                              } catch {}
-                            }}
+                            onClick={() => setBellLeaveConfirm({ eventId: ev.id, title: ev.title })}
                             style={{
                               background: '#fde8e8',
                               color: '#c0392b',
@@ -2166,6 +2292,27 @@ export default function CustomerApp() {
           </div>
         </div>
       )}
+      <ConfirmModal
+        isOpen={!!bellLeaveConfirm}
+        title="Leave Event?"
+        message={bellLeaveConfirm ? `Are you sure you want to cancel your spot in "${bellLeaveConfirm.title}"? Your participation will be removed.` : ''}
+        confirmText="Yes, Leave"
+        cancelText="Keep My Spot"
+        isDanger={true}
+        onConfirm={async () => {
+          if (!bellLeaveConfirm) return;
+          try {
+            await fetch(`${API_BASE}/events/${bellLeaveConfirm.eventId}/leave`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ customerId, participant_name: customer?.name })
+            });
+            loadJoinedEvents(customerId);
+          } catch {}
+          setBellLeaveConfirm(null);
+        }}
+        onCancel={() => setBellLeaveConfirm(null)}
+      />
     </div>
   );
 }
