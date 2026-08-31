@@ -77,15 +77,22 @@ router.get('/calendar', async (req, res) => {
 // ── GET events submitted by a specific customer (for approval notifications) ──
 router.get('/my/:customerId', async (req, res) => {
   try {
-    // Find events where host is this customer (by matching participants or created status)
-    // We use participants array — first participant = organiser for customer-type events
-    // Better: we match on type=customer and notified=false to surface newly approved ones
+    const { customerId } = req.params;
+    const { host_name } = req.query;
+
+    const orConditions = [
+      { customer_id: customerId },
+      { participants: customerId }
+    ];
+
+    if (host_name && host_name.trim()) {
+      orConditions.push({ host_name: new RegExp(`^${host_name.trim()}$`, 'i') });
+    }
+
     const events = await Event.find({
-      type:   'customer',
-      status: { $in: ['approved', 'rejected'] },
-      approval_notified: false,
-      participants: req.params.customerId
+      $or: orConditions
     }).sort({ created_at: -1 });
+
     res.json(events);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch customer events' });

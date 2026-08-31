@@ -759,12 +759,15 @@ export default function CustomerApp() {
   useEffect(() => {
     if (customerId && view === 'portal') {
       loadCustomerInfo();
-      loadApprovalNotifications();
+      loadApprovalNotifications(customerId, customerName);
       loadJoinedEvents(customerId);
-      const notifInterval = setInterval(() => loadJoinedEvents(customerId), 10000);
+      const notifInterval = setInterval(() => {
+        loadJoinedEvents(customerId);
+        loadApprovalNotifications(customerId, customerName);
+      }, 5000);
       return () => clearInterval(notifInterval);
     }
-  }, [customerId, view]);
+  }, [customerId, customerName, view]);
 
   // ── Loaders ───────────────────────────────────────────────────────────────
   const loadShopSettings = async () => {
@@ -825,15 +828,14 @@ export default function CustomerApp() {
     } catch {}
   };
 
-  const loadApprovalNotifications = async () => {
+  const loadApprovalNotifications = async (cId = customerId, cName = customerName) => {
+    if (!cId) return;
     try {
-      const res = await fetch(`${API_BASE}/events/my/${customerId}`);
+      const url = `${API_BASE}/events/my/${cId}${cName ? `?host_name=${encodeURIComponent(cName)}` : ''}`;
+      const res = await fetch(url);
       if (!res.ok) return;
       const evs = await res.json();
       setNotifications(evs);
-      evs.forEach(ev => {
-        fetch(`${API_BASE}/events/${ev.id}/notified`, { method: 'PATCH' }).catch(() => {});
-      });
     } catch {}
   };
 
