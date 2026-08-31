@@ -1575,7 +1575,7 @@ export default function CustomerApp() {
                 title="Event Notifications & Reminders"
               >
                 🔔
-                {joinedEvents.length > 0 && (
+                {(notifications.length + joinedEvents.length) > 0 && (
                   <span style={{
                     position: 'absolute',
                     top: '-4px',
@@ -1589,7 +1589,7 @@ export default function CustomerApp() {
                     border: '2px solid #fff',
                     lineHeight: 1.2
                   }}>
-                    {joinedEvents.length}
+                    {notifications.length + joinedEvents.length}
                   </span>
                 )}
               </button>
@@ -1600,8 +1600,8 @@ export default function CustomerApp() {
                   position: 'absolute',
                   top: '52px',
                   right: '0',
-                  width: '340px',
-                  maxHeight: '420px',
+                  width: '360px',
+                  maxHeight: '500px',
                   overflowY: 'auto',
                   background: '#ffffff',
                   border: '1.5px solid var(--border)',
@@ -1611,11 +1611,17 @@ export default function CustomerApp() {
                   padding: '18px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '12px'
+                  gap: '10px'
                 }}>
+                  {/* Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--espresso)', fontSize: '0.95rem' }}>
-                      🔔 Joined Events ({joinedEvents.length})
+                    <span style={{ fontWeight: 700, color: 'var(--espresso)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      🔔 Notifications
+                      {(notifications.length + joinedEvents.length) > 0 && (
+                        <span style={{ background: '#e74c3c', color: '#fff', borderRadius: '10px', padding: '1px 8px', fontSize: '0.72rem', fontWeight: 700 }}>
+                          {notifications.length + joinedEvents.length}
+                        </span>
+                      )}
                     </span>
                     <button
                       onClick={() => setNotifOpen(false)}
@@ -1625,58 +1631,132 @@ export default function CustomerApp() {
                     </button>
                   </div>
 
-                  {joinedEvents.length === 0 ? (
+                  {/* ── Approval / Rejection Status Notifications ── */}
+                  {notifications.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
+                        📋 Booking Updates
+                      </div>
+                      {notifications.map(ev => {
+                        const isApproved = ev.status === 'approved' || ev.status === 'upcoming';
+                        const isRejected = ev.status === 'rejected';
+                        return (
+                          <div key={ev._id || ev.id} style={{
+                            background: isApproved ? '#f0fdf4' : isRejected ? '#fff5f5' : '#fffbf0',
+                            border: `1.5px solid ${isApproved ? '#86efac' : isRejected ? '#fca5a5' : '#fcd34d'}`,
+                            borderRadius: '10px',
+                            padding: '12px',
+                            fontSize: '0.85rem',
+                            marginBottom: '8px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                              <div style={{ fontWeight: 700, color: 'var(--espresso)', flex: 1, marginRight: '8px', fontSize: '0.88rem' }}>
+                                {ev.title}
+                              </div>
+                              <span style={{
+                                background: isApproved ? '#16a34a' : isRejected ? '#dc2626' : '#d97706',
+                                color: '#fff',
+                                fontSize: '0.65rem',
+                                fontWeight: 700,
+                                padding: '3px 8px',
+                                borderRadius: '20px',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0
+                              }}>
+                                {isApproved ? '✅ Approved' : isRejected ? '❌ Rejected' : '⏳ Pending'}
+                              </span>
+                            </div>
+                            <div style={{ color: '#666', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                              {isApproved
+                                ? '🎉 Your event has been approved! See you there.'
+                                : isRejected
+                                ? '😔 Your event was not approved. You may contact us for details.'
+                                : 'Your booking is under review.'}
+                            </div>
+                            {ev.date && (
+                              <div style={{ color: '#d4a373', fontWeight: 600, fontSize: '0.75rem', marginTop: '5px' }}>
+                                📅 {new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </div>
+                            )}
+                            <button
+                              onClick={() => {
+                                fetch(`${API_BASE}/events/${ev._id || ev.id}/notified`, { method: 'PATCH' }).catch(() => {});
+                                setNotifications(prev => prev.filter(n => (n._id || n.id) !== (ev._id || ev.id)));
+                                setActiveTab('tab-events');
+                                setNotifOpen(false);
+                              }}
+                              style={{ marginTop: '8px', background: 'transparent', border: 'none', color: '#d4a373', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                            >
+                              View My Events →
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* ── Joined Event Reminders ── */}
+                  {joinedEvents.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
+                        📅 Upcoming Reminders
+                      </div>
+                      {joinedEvents.map(ev => {
+                        const dur = ev.duration_hours || getEventDuration(ev.preferred_time);
+                        return (
+                          <div key={ev.id} style={{
+                            background: '#fdfbf7',
+                            border: '1px solid #ece4db',
+                            borderRadius: '10px',
+                            padding: '12px',
+                            fontSize: '0.85rem',
+                            marginBottom: '8px'
+                          }}>
+                            <div style={{ fontWeight: 700, color: 'var(--espresso)', marginBottom: '4px' }}>
+                              {ev.title}
+                            </div>
+                            <div style={{ color: '#d4a373', fontWeight: 600, fontSize: '0.8rem', marginBottom: '4px' }}>
+                              📅 {new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {ev.preferred_time && ` • 🕐 ${formatTimeRange(ev.preferred_time, dur)}`}
+                            </div>
+                            <div style={{ color: '#777', fontSize: '0.75rem', marginBottom: '8px' }}>
+                              Hosted by: {ev.host_name}
+                            </div>
+                            <button
+                              onClick={() => setBellLeaveConfirm({ eventId: ev.id, title: ev.title })}
+                              style={{
+                                background: '#fde8e8',
+                                color: '#c0392b',
+                                border: '1px solid #f5c6c6',
+                                borderRadius: '6px',
+                                padding: '5px 10px',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                width: '100%',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              Cancel Participation / Leave Event
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Empty state */}
+                  {notifications.length === 0 && joinedEvents.length === 0 && (
                     <div style={{ textAlign: 'center', color: '#888', fontSize: '0.85rem', padding: '24px 0' }}>
                       <div style={{ fontSize: '2rem', marginBottom: '8px' }}>☕</div>
-                      You haven't joined any upcoming events yet.<br/>
+                      No notifications yet.<br/>
                       <span
                         style={{ fontSize: '0.82rem', color: '#d4a373', cursor: 'pointer', fontWeight: 600, marginTop: '8px', display: 'inline-block' }}
                         onClick={() => { setActiveTab('tab-events'); setNotifOpen(false); }}
                       >
-                        Browse Events & Calendar →
+                        Browse Events &amp; Calendar →
                       </span>
                     </div>
-                  ) : (
-                    joinedEvents.map(ev => {
-                      const dur = ev.duration_hours || getEventDuration(ev.preferred_time);
-                      return (
-                        <div key={ev.id} style={{
-                          background: '#fdfbf7',
-                          border: '1px solid #ece4db',
-                          borderRadius: '10px',
-                          padding: '12px',
-                          fontSize: '0.85rem'
-                        }}>
-                          <div style={{ fontWeight: 700, color: 'var(--espresso)', marginBottom: '4px' }}>
-                            {ev.title}
-                          </div>
-                          <div style={{ color: '#d4a373', fontWeight: 600, fontSize: '0.8rem', marginBottom: '4px' }}>
-                            📅 {new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            {ev.preferred_time && ` • 🕐 ${formatTimeRange(ev.preferred_time, dur)}`}
-                          </div>
-                          <div style={{ color: '#777', fontSize: '0.75rem', marginBottom: '8px' }}>
-                            Hosted by: {ev.host_name}
-                          </div>
-                          <button
-                            onClick={() => setBellLeaveConfirm({ eventId: ev.id, title: ev.title })}
-                            style={{
-                              background: '#fde8e8',
-                              color: '#c0392b',
-                              border: '1px solid #f5c6c6',
-                              borderRadius: '6px',
-                              padding: '5px 10px',
-                              fontSize: '0.75rem',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              width: '100%',
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            Cancel Participation / Leave Event
-                          </button>
-                        </div>
-                      );
-                    })
                   )}
                 </div>
               )}
