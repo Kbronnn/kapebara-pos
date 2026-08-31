@@ -204,8 +204,9 @@ function EventsGrid({ customerId, customerName, isLoggedIn, onLoginClick }) {
       const dNow = new Date();
       const todayStr = `${dNow.getFullYear()}-${String(dNow.getMonth() + 1).padStart(2, '0')}-${String(dNow.getDate()).padStart(2, '0')}`;
       const visible = all.filter(ev => {
-        if (ev.status === 'pending_approval') return false;
-        if (ev.status === 'rejected') return false;  // Rejected events must never appear publicly
+        const st = (ev.status || '').toLowerCase().trim();
+        // ONLY approved or upcoming events can appear in Upcoming Events list
+        if (st !== 'approved' && st !== 'upcoming') return false;
         if (ev.is_private && (!customerId || ev.customer_id !== customerId)) return false;
         const dStr = ev.date ? ev.date.split('T')[0] : '';
         return dStr >= todayStr;

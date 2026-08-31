@@ -225,16 +225,17 @@ router.post('/', async (req, res) => {
 // ── PATCH approve / reject an event ──────────────────────────────────────────
 router.patch('/:id/status', async (req, res) => {
   const { status } = req.body;
+  const cleanStatus = (status || '').toLowerCase().trim();
   const allowed = ['approved', 'rejected', 'pending_approval', 'upcoming'];
-  if (!allowed.includes(status))
+  if (!allowed.includes(cleanStatus))
     return res.status(400).json({ error: 'Invalid status value' });
 
   try {
     // On approval/rejection, reset notification flag so customer gets notified
-    const updates = { status, approval_notified: false };
+    const updates = { status: cleanStatus, approval_notified: false };
     const event = await Event.findByIdAndUpdate(req.params.id, updates, { new: true });
     if (!event) return res.status(404).json({ error: 'Event not found' });
-    res.json({ message: `Event ${status} successfully.` });
+    res.json({ message: `Event ${cleanStatus} successfully.` });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update event status' });
   }
