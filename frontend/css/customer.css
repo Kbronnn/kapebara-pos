@@ -30,26 +30,24 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px clamp(16px, 4vw, 40px);
-  background: rgba(250, 247, 242, 0.95);
+  padding: 20px 50px;
+  background: rgba(250, 247, 242, 0.8);
   backdrop-filter: blur(10px);
   position: sticky;
   top: 0;
   z-index: 100;
   border-bottom: 1px solid rgba(74, 55, 40, 0.1);
-  width: 100%;
-  box-sizing: border-box;
 }
 
 .landing-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 15px;
 }
 
 .landing-logo {
-  width: clamp(36px, 4vw, 48px);
-  height: clamp(36px, 4vw, 48px);
+  width: 50px;
+  height: 50px;
   border-radius: 12px;
   object-fit: cover;
   border: 2px solid #d4a373;
@@ -57,22 +55,21 @@ body {
 
 .landing-name {
   font-family: 'Playfair Display', serif;
-  font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+  font-size: 1.8rem;
   font-weight: 700;
   color: #4a3728;
 }
 
 .landing-nav {
   display: flex;
-  gap: clamp(12px, 2.5vw, 32px);
-  align-items: center;
+  gap: 40px;
 }
 
 .landing-nav a {
   color: #6b5a4a;
   text-decoration: none;
   font-weight: 500;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   transition: color 0.3s;
 }
 
@@ -84,13 +81,12 @@ body {
   background: #d4a373;
   color: #fff;
   border: none;
-  padding: 9px 24px;
+  padding: 10px 28px;
   border-radius: 50px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
   box-shadow: 0 4px 15px rgba(212, 163, 115, 0.2);
-  white-space: nowrap;
 }
 
 .landing-login-btn:hover {
@@ -99,54 +95,15 @@ body {
   box-shadow: 0 6px 20px rgba(212, 163, 115, 0.3);
 }
 
-@media (max-width: 850px) {
-  .landing-header {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 10px;
-    padding: 12px 16px;
-  }
-  .landing-brand {
-    grid-column: 1;
-  }
-  .landing-login-btn {
-    grid-column: 2;
-    padding: 7px 18px;
-    font-size: 0.82rem;
-  }
-  .landing-nav {
-    grid-column: 1 / -1;
-    width: 100%;
-    overflow-x: auto;
-    white-space: nowrap;
-    display: flex;
-    gap: 8px;
-    padding: 4px 0 2px;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .landing-nav::-webkit-scrollbar {
-    display: none;
-  }
-  .landing-nav a {
-    padding: 6px 14px;
-    background: rgba(140, 107, 78, 0.08);
-    border-radius: 20px;
-    font-size: 0.8rem;
-    flex-shrink: 0;
-  }
-}
-
 .landing-hero {
   flex: 1;
-  min-height: 75vh;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  background: linear-gradient(to right, rgba(250, 247, 242, 0.92), rgba(250, 247, 242, 0.3)), url('../assets/cozy_hero_bg.png');
+  background: linear-gradient(to right, rgba(250, 247, 242, 0.9), rgba(250, 247, 242, 0.2)), url('../assets/cozy_hero_bg.png');
   background-size: cover;
   background-position: center;
-  padding: clamp(40px, 6vw, 80px) clamp(16px, 8vw, 10%);
+  padding: 0 10%;
   position: relative;
 }
 
@@ -157,16 +114,16 @@ body {
 
 .hero-content h1 {
   font-family: 'Playfair Display', serif;
-  font-size: clamp(2rem, 5vw, 3.8rem);
+  font-size: 4rem;
   color: #4a3728;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   line-height: 1.2;
 }
 
 .hero-content p {
-  font-size: clamp(1rem, 1.5vw, 1.25rem);
+  font-size: 1.25rem;
   color: #6b5a4a;
-  margin-bottom: 30px;
+  margin-bottom: 40px;
   line-height: 1.7;
 }
 
@@ -174,9 +131,9 @@ body {
   background: #4a3728;
   color: #faf7f2;
   border: none;
-  padding: 16px 40px;
+  padding: 18px 45px;
   border-radius: 50px;
-  font-size: clamp(0.95rem, 1.2vw, 1.1rem);
+  font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -191,7 +148,7 @@ body {
 
 
 .landing-section {
-  padding: clamp(45px, 6vw, 90px) clamp(16px, 6vw, 10%);
+  padding: 100px 10%;
   background-color: #faf7f2;
 }
 
@@ -202,14 +159,13 @@ body {
 .section-container {
   max-width: 1000px;
   margin: 0 auto;
-  width: 100%;
 }
 
 .section-title {
   font-family: 'Playfair Display', serif;
-  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-size: 2.8rem;
   color: #4a3728;
-  margin-bottom: 40px;
+  margin-bottom: 50px;
   text-align: center;
   position: relative;
 }
@@ -220,51 +176,30 @@ body {
   width: 60px;
   height: 3px;
   background: #d4a373;
-  margin: 12px auto 0;
+  margin: 15px auto 0;
   border-radius: 2px;
 }
 
 .about-content {
   display: flex;
-  flex-direction: column;
-  gap: 24px;
-  width: 100%;
-  box-sizing: border-box;
+  gap: 60px;
+  align-items: center;
+  line-height: 1.8;
+  font-size: 1.1rem;
+  color: #6b5a4a;
 }
 
 .about-content p {
-  width: 100%;
-  font-size: 1.05rem;
-  line-height: 1.8;
-  color: #6b5a4a;
-  margin: 0;
-  box-sizing: border-box;
+  flex: 3;
 }
 
 .hours-box {
-  width: 100%;
+  flex: 2;
   background: #fff;
-  padding: clamp(20px, 4vw, 35px);
+  padding: 35px;
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
   border: 1px solid rgba(212, 163, 115, 0.1);
-  box-sizing: border-box;
-}
-
-@media (min-width: 800px) {
-  .about-content {
-    flex-direction: row;
-    gap: 40px;
-    align-items: center;
-  }
-  .about-content p {
-    flex: 3;
-    width: auto;
-  }
-  .hours-box {
-    flex: 2;
-    width: auto;
-  }
 }
 
 .hours-box h3 {
@@ -1157,96 +1092,20 @@ textarea:focus {
   border-color: var(--accent);
 }
 
-.portal-ordering-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 24px;
-  align-items: start;
-}
-
-.portal-events-layout {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 30px;
-}
-
-.form-row-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-}
-
-/* ── 2-Tier Device Adaptation Architecture ───────────────────────────────── */
-
-/* ── TIER 1: LAPTOPS, DESKTOPS & TABLETS (min-width: 768px) ── */
-@media (min-width: 768px) {
+/* ── Responsive Mobile & Tablet Design ────────────────────────────────────── */
+@media (max-width: 992px) {
   .landing-header {
-    padding: 18px 48px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    padding: 14px 20px;
+    flex-wrap: wrap;
+    gap: 12px;
   }
   .landing-nav {
-    display: flex;
-    gap: 32px;
-  }
-  .landing-nav a {
-    background: transparent;
-    padding: 0;
-    font-size: 0.95rem;
-  }
-  .about-content {
-    display: flex;
-    flex-direction: row;
-    gap: 48px;
-    align-items: center;
-  }
-  .about-content p {
-    flex: 3;
-  }
-  .hours-box {
-    flex: 2;
-    padding: 35px;
-  }
-  .services-grid {
-    grid-template-columns: repeat(3, 1fr) !important;
-  }
-  .portal-ordering-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 340px;
-    gap: 28px;
-  }
-  .portal-events-layout {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 32px;
-  }
-}
-
-/* ── TIER 2: MOBILE PHONES (< 768px) ── */
-@media (max-width: 767px) {
-  .landing-header {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 10px;
-    padding: 12px 16px;
-  }
-  .landing-brand {
-    grid-column: 1;
-  }
-  .landing-login-btn {
-    grid-column: 2;
-    padding: 7px 18px;
-    font-size: 0.82rem;
-  }
-  .landing-nav {
-    grid-column: 1 / -1;
     width: 100%;
+    display: flex;
     overflow-x: auto;
     white-space: nowrap;
-    display: flex;
-    gap: 8px;
-    padding: 4px 0 2px;
+    gap: 10px;
+    padding-bottom: 6px;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
@@ -1254,36 +1113,32 @@ textarea:focus {
     display: none;
   }
   .landing-nav a {
+    flex-shrink: 0;
+    font-size: 0.85rem;
     padding: 6px 14px;
     background: rgba(140, 107, 78, 0.08);
     border-radius: 20px;
-    font-size: 0.8rem;
-    flex-shrink: 0;
   }
   .landing-hero {
-    padding: 40px 16px;
+    padding: 60px 20px;
   }
   .hero-content h1 {
-    font-size: 2rem;
+    font-size: 2.3rem;
   }
   .hero-content p {
-    font-size: 0.95rem;
+    font-size: 1rem;
   }
-  .about-content {
-    flex-direction: column;
-    gap: 20px;
+  .portal-container {
+    padding: 20px 16px;
   }
-  .hours-box {
-    padding: 22px 18px;
-  }
+}
+
+@media (max-width: 768px) {
   #portal-header {
     flex-direction: column;
     align-items: flex-start !important;
     gap: 12px;
     padding-bottom: 14px;
-  }
-  .portal-container {
-    padding: 14px 12px;
   }
   .portal-tabs-header {
     overflow-x: auto;
@@ -1302,23 +1157,15 @@ textarea:focus {
     gap: 4px;
   }
   .portal-tab-btn {
-    padding: 9px 13px;
-    font-size: 0.82rem;
+    padding: 10px 14px;
+    font-size: 0.85rem;
   }
   .portal-main-card {
-    padding: 18px 14px;
-    border-radius: 14px;
-  }
-  .portal-ordering-layout {
-    grid-template-columns: 1fr;
-    gap: 18px;
-  }
-  .portal-events-layout {
-    grid-template-columns: 1fr;
-    gap: 20px;
+    padding: 20px 16px;
+    border-radius: 16px;
   }
   .loyalty-card {
-    padding: 18px 14px;
+    padding: 20px 16px;
   }
   .loyalty-profile {
     flex-direction: column;
@@ -1328,8 +1175,8 @@ textarea:focus {
   }
   .points-display {
     text-align: center;
-    font-size: 2.6rem;
-    margin-top: 12px;
+    font-size: 2.8rem;
+    margin-top: 14px;
   }
   .events-grid,
   .menu-products-grid,
@@ -1338,22 +1185,18 @@ textarea:focus {
     grid-template-columns: 1fr !important;
   }
   .auth-container {
-    width: 94% !important;
-    margin: 30px auto !important;
-    padding: 22px 16px !important;
-  }
-  .form-row-2 {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    width: 92% !important;
+    margin: 40px auto !important;
+    padding: 24px 18px !important;
   }
 }
 
 @media (max-width: 480px) {
   .hero-content h1 {
-    font-size: 1.75rem;
+    font-size: 1.8rem;
   }
   .section-title {
-    font-size: 1.75rem !important;
+    font-size: 1.8rem !important;
   }
   .menu-cat-tabs,
   .portal-menu-filters {
@@ -1361,16 +1204,6 @@ textarea:focus {
     white-space: nowrap;
     width: 100%;
     padding-bottom: 6px;
-    -webkit-overflow-scrolling: touch;
-  }
-  .cal-header-container {
-    flex-direction: column;
-    gap: 10px;
-    align-items: flex-start !important;
-  }
-  .cal-controls {
-    width: 100%;
-    justify-content: space-between;
   }
 }
 
