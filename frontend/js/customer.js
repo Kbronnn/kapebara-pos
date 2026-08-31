@@ -222,44 +222,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Approval Notifications ─────────────────────────────────────────────────
   async function checkApprovalNotifications() {
-    if (!currentCustomerId) return;
-    const banner = document.getElementById('approval-banner');
-    try {
-      const res    = await fetch(`${API_BASE}/events/my/${currentCustomerId}`);
-      if (!res.ok) return;
-      const events = await res.json();
-      if (!events.length) return;
-
-      const banners = events.map(e => {
-        const isApproved = e.status === 'approved';
-        const color      = isApproved ? '#d4edda' : '#fde8e8';
-        const border     = isApproved ? '#28a745' : '#e8a0a0';
-        const textColor  = isApproved ? '#155724' : '#922b2b';
-        const icon       = isApproved ? '🎉' : '❌';
-        const msg        = isApproved
-          ? `Your event <strong>"${e.title}"</strong> on ${formatDateShort(e.date)} has been <strong>approved!</strong> See you at KapeBara ☕`
-          : `Your event <strong>"${e.title}"</strong> on ${formatDateShort(e.date)} was <strong>not approved</strong> at this time. Please contact us for details.`;
-
-        return `
-          <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-radius:10px;background:${color};border:1.5px solid ${border};margin-bottom:10px;">
-            <span style="font-size:1.3rem;flex-shrink:0">${icon}</span>
-            <div style="flex:1;font-size:.88rem;color:${textColor};line-height:1.5">${msg}</div>
-            <button onclick="dismissNotification('${e.id}', this.parentElement)" style="background:transparent;border:none;color:${textColor};font-size:1rem;cursor:pointer;padding:0;line-height:1;flex-shrink:0">✕</button>
-          </div>`;
-      }).join('');
-
-      banner.innerHTML = `
-        <div style="margin-bottom:16px">
-          <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b5a4a;margin-bottom:8px">📬 Event Updates</div>
-          ${banners}
-        </div>`;
-      banner.style.display = 'block';
-
-      // Mark as notified
-      events.forEach(e => {
-        fetch(`${API_BASE}/events/${e.id}/notified`, { method: 'PATCH' }).catch(() => {});
-      });
-    } catch (err) { console.error(err); }
+    // Deprecated: Handled inside React CustomerApp notification bell
+    return;
   }
 
   window.dismissNotification = (id, el) => {
