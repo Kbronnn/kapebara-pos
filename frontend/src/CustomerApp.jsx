@@ -316,7 +316,28 @@ function EventsGrid({ customerId, customerName, isLoggedIn, onLoginClick }) {
               : isFull
               ? <button disabled style={{ opacity: .6, cursor: 'not-allowed' }}>Event Full</button>
               : alreadyJoined
-              ? <button disabled style={{ background: '#a5d6a7', color: '#1b5e20', cursor: 'default', opacity: 1 }}>✅ Joined!</button>
+              ? (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button disabled style={{ background: '#a5d6a7', color: '#1b5e20', cursor: 'default', opacity: 1, flex: 1 }}>✅ Joined!</button>
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm(`Are you sure you want to cancel your participation in "${ev.title}"?`)) return;
+                      try {
+                        await fetch(`${API_BASE}/events/${ev.id}/leave`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ customerId, participant_name: customerName })
+                        });
+                        loadEvents();
+                      } catch {}
+                    }}
+                    style={{ background: '#fde8e8', color: '#c0392b', border: '1px solid #f5c6c6', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}
+                    title="Leave event / cancel your spot"
+                  >
+                    Leave
+                  </button>
+                </div>
+              )
               : <button onClick={() => handleJoin(ev.id)} id={`join-btn-${ev.id}`} disabled={isJoining}>
                   {isJoining ? 'Joining…' : 'Join'}
                 </button>
@@ -329,9 +350,10 @@ function EventsGrid({ customerId, customerName, isLoggedIn, onLoginClick }) {
 }
 
 // ── My Events List Component ──────────────────────────────────────────────────
-function MyEventsList({ customerId, customerName }) {
+function MyEventsList({ customerId, customerName, onEventCancelled }) {
   const [myEvents, setMyEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cancellingId, setCancellingId] = useState(null);
 
   const loadMyEvents = useCallback(async () => {
     try {
@@ -365,6 +387,26 @@ function MyEventsList({ customerId, customerName }) {
     if (customerId || customerName) loadMyEvents();
   }, [customerId, customerName, loadMyEvents]);
 
+  const handleCancel = async (eventId, eventTitle) => {
+    if (!window.confirm(`Are you sure you want to cancel your booking request for "${eventTitle}"?`)) return;
+    setCancellingId(eventId);
+    try {
+      const res = await fetch(`${API_BASE}/events/${eventId}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId })
+      });
+      if (res.ok) {
+        loadMyEvents();
+        if (onEventCancelled) onEventCancelled();
+      }
+    } catch (err) {
+      console.error('Failed to cancel event:', err);
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   if (loading) return <p style={{ color: '#aaa', fontSize: '0.9rem' }}>Loading your events...</p>;
   if (!myEvents.length) return <p style={{ color: '#aaa', fontSize: '0.9rem' }}>You haven't requested any events yet.</p>;
 
@@ -374,6 +416,7 @@ function MyEventsList({ customerId, customerName }) {
         const isApproved = ev.status === 'approved' || ev.status === 'upcoming';
         const isPending = ev.status === 'pending_approval';
         const isRejected = ev.status === 'rejected';
+        const isCancelled = ev.status === 'cancelled';
 
         let statusText = 'Pending Approval';
         let statusStyle = { background: '#fff3cd', color: '#856404' };
@@ -383,19 +426,27 @@ function MyEventsList({ customerId, customerName }) {
         } else if (isRejected) {
           statusText = 'Rejected';
           statusStyle = { background: '#f8d7da', color: '#721c24' };
+        } else if (isCancelled) {
+          statusText = 'Cancelled';
+          statusStyle = { background: '#f1f2f6', color: '#747d8c' };
         }
+
+        const canCancel = isPending || isApproved;
 
         return (
           <div key={ev.id} className="event-card" style={{
-            background: '#fff',
+            background: isCancelled ? '#fafafa' : '#fff',
             border: '1px solid var(--border)',
             borderRadius: '12px',
             padding: '16px',
             boxShadow: 'var(--shadow)',
-            display: 'block'
+            display: 'block',
+            opacity: isCancelled ? 0.75 : 1
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-              <h4 style={{ margin: 0, fontFamily: "'Playfair Display', serif", fontSize: '1.05rem', color: 'var(--espresso)', fontWeight: 700 }}>{ev.title}</h4>
+              <h4 style={{ margin: 0, fontFamily: "'Playfair Display', serif", fontSize: '1.05rem', color: isCancelled ? '#888' : 'var(--espresso)', fontWeight: 700 }}>
+                {ev.title}
+              </h4>
               <span style={{
                 fontSize: '0.72rem',
                 fontWeight: 700,
@@ -410,19 +461,41 @@ function MyEventsList({ customerId, customerName }) {
               📅 {new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               {ev.preferred_time && ` • 🕐 ${formatTimeRange(ev.preferred_time, ev.duration_hours || getEventDuration(ev.preferred_time))}`}
             </p>
-            <div style={{ display: 'flex', gap: '8px', marginTop: '10px', fontSize: '0.75rem' }}>
-              <span style={{
-                background: ev.is_private ? '#efe5dc' : '#e3f2fd',
-                color: ev.is_private ? '#5d4037' : '#0d47a1',
-                padding: '2px 8px',
-                borderRadius: '4px',
-                fontWeight: 600
-              }}>
-                {ev.is_private ? '🔒 Private' : '🔓 Public'}
-              </span>
-              <span style={{ color: 'var(--text-light)', fontWeight: 500 }}>
-                👥 {ev.max_participants} max guests
-              </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', fontSize: '0.75rem' }}>
+                <span style={{
+                  background: ev.is_private ? '#efe5dc' : '#e3f2fd',
+                  color: ev.is_private ? '#5d4037' : '#0d47a1',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  fontWeight: 600
+                }}>
+                  {ev.is_private ? '🔒 Private' : '🔓 Public'}
+                </span>
+                <span style={{ color: 'var(--text-light)', fontWeight: 500 }}>
+                  👥 {ev.max_participants} max guests
+                </span>
+              </div>
+
+              {canCancel && (
+                <button
+                  onClick={() => handleCancel(ev.id, ev.title)}
+                  disabled={cancellingId === ev.id}
+                  style={{
+                    background: '#fde8e8',
+                    color: '#c0392b',
+                    border: '1px solid #f5c6c6',
+                    borderRadius: '8px',
+                    padding: '5px 12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {cancellingId === ev.id ? 'Cancelling…' : '✕ Cancel Booking'}
+                </button>
+              )}
             </div>
             {ev.description && (
               <p style={{ margin: '10px 0 0', fontSize: '0.78rem', color: '#777', borderTop: '1px solid #eee', paddingTop: '8px', fontStyle: 'italic' }}>
@@ -459,6 +532,8 @@ export default function CustomerApp() {
   // Customer profile
   const [customer, setCustomer] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [joinedEvents, setJoinedEvents] = useState([]);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   // Menu state
   const [menuProducts, setMenuProducts] = useState([]);
@@ -522,10 +597,24 @@ export default function CustomerApp() {
     return () => clearInterval(interval);
   }, []);
 
+  const loadJoinedEvents = async (cId = customerId) => {
+    if (!cId) return;
+    try {
+      const res = await fetch(`${API_BASE}/events/joined/${cId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setJoinedEvents(data);
+      }
+    } catch {}
+  };
+
   useEffect(() => {
     if (customerId && view === 'portal') {
       loadCustomerInfo();
       loadApprovalNotifications();
+      loadJoinedEvents(customerId);
+      const notifInterval = setInterval(() => loadJoinedEvents(customerId), 10000);
+      return () => clearInterval(notifInterval);
     }
   }, [customerId, view]);
 
@@ -1185,7 +1274,7 @@ export default function CustomerApp() {
       {/* PORTAL VIEW */}
       {view === 'portal' && customer && (
         <div id="portal-view" className="portal-container" style={{ display: 'block' }}>
-          <div id="portal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', marginBottom: '20px', borderBottom: '1px solid var(--border)' }}>
+          <div id="portal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', marginBottom: '20px', borderBottom: '1px solid var(--border)', position: 'relative' }}>
             <div className="landing-brand">
               <img src={logoImg} alt="KapeBara Logo" className="landing-logo" style={{ width: '40px', height: '40px' }} />
               <div>
@@ -1193,7 +1282,146 @@ export default function CustomerApp() {
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Customer Portal</span>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
+              {/* Notification Bell Button */}
+              <button
+                id="event-notif-btn"
+                onClick={() => setNotifOpen(prev => !prev)}
+                style={{
+                  position: 'relative',
+                  background: notifOpen ? '#d4a373' : '#faf7f2',
+                  color: notifOpen ? '#fff' : '#4a3728',
+                  border: '1.5px solid #d4a373',
+                  borderRadius: '50%',
+                  width: '42px',
+                  height: '42px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontSize: '1.2rem',
+                  transition: 'all 0.2s ease',
+                  boxShadow: notifOpen ? '0 4px 12px rgba(0,0,0,0.15)' : 'none'
+                }}
+                title="Event Notifications & Reminders"
+              >
+                🔔
+                {joinedEvents.length > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    background: '#e74c3c',
+                    color: '#fff',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    borderRadius: '10px',
+                    padding: '1px 6px',
+                    border: '2px solid #fff',
+                    lineHeight: 1.2
+                  }}>
+                    {joinedEvents.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Dropdown Panel */}
+              {notifOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: '52px',
+                  right: '0',
+                  width: '340px',
+                  maxHeight: '420px',
+                  overflowY: 'auto',
+                  background: '#ffffff',
+                  border: '1.5px solid var(--border)',
+                  borderRadius: '14px',
+                  boxShadow: '0 12px 32px rgba(0,0,0,0.18)',
+                  zIndex: 9999,
+                  padding: '18px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--espresso)', fontSize: '0.95rem' }}>
+                      🔔 Joined Events ({joinedEvents.length})
+                    </span>
+                    <button
+                      onClick={() => setNotifOpen(false)}
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#888' }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {joinedEvents.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#888', fontSize: '0.85rem', padding: '24px 0' }}>
+                      <div style={{ fontSize: '2rem', marginBottom: '8px' }}>☕</div>
+                      You haven't joined any upcoming events yet.<br/>
+                      <span
+                        style={{ fontSize: '0.82rem', color: '#d4a373', cursor: 'pointer', fontWeight: 600, marginTop: '8px', display: 'inline-block' }}
+                        onClick={() => { setActiveTab('tab-events'); setNotifOpen(false); }}
+                      >
+                        Browse Events & Calendar →
+                      </span>
+                    </div>
+                  ) : (
+                    joinedEvents.map(ev => {
+                      const dur = ev.duration_hours || getEventDuration(ev.preferred_time);
+                      return (
+                        <div key={ev.id} style={{
+                          background: '#fdfbf7',
+                          border: '1px solid #ece4db',
+                          borderRadius: '10px',
+                          padding: '12px',
+                          fontSize: '0.85rem'
+                        }}>
+                          <div style={{ fontWeight: 700, color: 'var(--espresso)', marginBottom: '4px' }}>
+                            {ev.title}
+                          </div>
+                          <div style={{ color: '#d4a373', fontWeight: 600, fontSize: '0.8rem', marginBottom: '4px' }}>
+                            📅 {new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {ev.preferred_time && ` • 🕐 ${formatTimeRange(ev.preferred_time, dur)}`}
+                          </div>
+                          <div style={{ color: '#777', fontSize: '0.75rem', marginBottom: '8px' }}>
+                            Hosted by: {ev.host_name}
+                          </div>
+                          <button
+                            onClick={async () => {
+                              if (!window.confirm(`Are you sure you want to cancel your spot in "${ev.title}"?`)) return;
+                              try {
+                                await fetch(`${API_BASE}/events/${ev.id}/leave`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ customerId, participant_name: customer?.name })
+                                });
+                                loadJoinedEvents(customerId);
+                              } catch {}
+                            }}
+                            style={{
+                              background: '#fde8e8',
+                              color: '#c0392b',
+                              border: '1px solid #f5c6c6',
+                              borderRadius: '6px',
+                              padding: '5px 10px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              width: '100%',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            Cancel Participation / Leave Event
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+
               <div id="welcome-message" dangerouslySetInnerHTML={{ __html: `Welcome back, <strong>${customer.name}</strong>!` }} />
               <button id="logout-btn" className="landing-login-btn" style={{ padding: '8px 20px', fontSize: '0.85rem' }} onClick={handleLogout}>Logout</button>
             </div>
@@ -1322,7 +1550,11 @@ export default function CustomerApp() {
                     
                     <div style={{ marginTop: '32px' }}>
                       <h3 style={{ fontFamily: "'Playfair Display', serif", color: 'var(--accent)', marginBottom: '16px' }}>Your Events & Bookings</h3>
-                      <MyEventsList customerId={customerId} customerName={customer?.name} />
+                      <MyEventsList
+                        customerId={customerId}
+                        customerName={customer?.name}
+                        onEventCancelled={() => loadJoinedEvents(customerId)}
+                      />
                     </div>
                   </div>
                   <div>
@@ -1331,7 +1563,25 @@ export default function CustomerApp() {
                       <ShopCalendar customerId={customerId} />
                     </div>
                     <div className="host-event-section" style={{ marginTop: '28px' }}>
-                      <h3 style={{ fontFamily: "'Playfair Display', serif", color: 'var(--accent)', marginBottom: '16px' }}>Request a Private Event</h3>
+                      <h3 style={{ fontFamily: "'Playfair Display', serif", color: 'var(--accent)', marginBottom: '14px' }}>Request a Private Event</h3>
+                      
+                      {/* Booking Guidelines Box */}
+                      <div style={{
+                        background: '#fff9eb',
+                        border: '1.5px solid #f0d5a3',
+                        borderRadius: '12px',
+                        padding: '14px 16px',
+                        marginBottom: '20px',
+                        display: 'flex',
+                        gap: '12px',
+                        alignItems: 'flex-start'
+                      }}>
+                        <span style={{ fontSize: '1.4rem', lineHeight: 1, flexShrink: 0 }}>📢</span>
+                        <div style={{ fontSize: '0.84rem', color: '#6d4c13', lineHeight: 1.5 }}>
+                          <strong>Booking Instructions:</strong> After booking, the owner/staff will review your booking request and will contact you through your given phone number regarding the approval or rejection of your event. Please wait for their announcement and confirmation. Thank you! ☕
+                        </div>
+                      </div>
+
                       <form id="host-event-form" onSubmit={handleHostEvent}>
                         <div className="form-group">
                           <label htmlFor="event-title">Event Title</label>

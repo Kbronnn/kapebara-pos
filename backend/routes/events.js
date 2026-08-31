@@ -130,6 +130,66 @@ router.post('/:id/join', async (req, res) => {
   }
 });
 
+// ── POST customer leaves an event they joined ────────────────────────────────
+router.post('/:id/leave', async (req, res) => {
+  const { customerId, participant_name } = req.body;
+  if (!customerId) return res.status(400).json({ error: 'Customer ID is required' });
+
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    // Remove customerId from participants
+    event.participants = event.participants.filter(p => p.toString() !== customerId);
+
+    // If participant name is known, remove one occurrence of that name
+    if (participant_name && event.participant_names) {
+      const idx = event.participant_names.findIndex(n => n.toLowerCase() === participant_name.trim().toLowerCase());
+      if (idx !== -1) {
+        event.participant_names.splice(idx, 1);
+      }
+    }
+
+    await event.save();
+    res.json({ message: 'Successfully left the event', spots_remaining: event.max_participants - event.participants.length });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to leave event' });
+  }
+});
+
+// ── POST customer cancels their own event booking ─────────────────────────────
+router.post('/:id/cancel', async (req, res) => {
+  const { customerId } = req.body;
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    // Verify ownership if customer_id is set
+    if (event.customer_id && customerId && event.customer_id.toString() !== customerId) {
+      return res.status(403).json({ error: 'You can only cancel your own events' });
+    }
+
+    event.status = 'cancelled';
+    await event.save();
+    res.json({ message: 'Event request cancelled successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to cancel event' });
+  }
+});
+
+// ── GET all events joined by a customer (for notification bell & reminders) ──
+router.get('/joined/:customerId', async (req, res) => {
+  try {
+    const events = await Event.find({
+      participants: req.params.customerId,
+      status: { $in: ['approved', 'upcoming'] }
+    }).sort({ date: 1, preferred_time: 1 });
+    res.json(events);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch joined events' });
+  }
+});
+
 // ── POST customer proposes a new event ────────────────────────────────────────
 router.post('/', async (req, res) => {
   const { title, description, date, hostName, phone, preferred_time, is_private, max_participants, customer_id } = req.body;
