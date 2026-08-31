@@ -5,11 +5,18 @@ const CATEGORIES = ['Espresso', 'Specialty', 'Frappé', 'Cold Drinks', 'Food'];
 
 /* ── Shared helper: render image or emoji ───────────────────────────────────── */
 export function ProductThumb({ product, size = 52, style = {} }) {
-  if (product?.image_url) {
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [product?.image_url]);
+
+  if (product?.image_url && !imgError) {
     return (
       <img
         src={product.image_url}
-        alt={product.name}
+        alt={product.name || 'Product'}
+        onError={() => setImgError(true)}
         style={{
           width: size, height: size,
           objectFit: 'cover', borderRadius: '8px',

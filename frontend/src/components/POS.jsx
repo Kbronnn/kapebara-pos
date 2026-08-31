@@ -24,6 +24,7 @@ export default function POS() {
   const [drinkaddon, setDrinkaddon] = useState('None');
 
   // Receipt modal states
+  const [checkingOut, setCheckingOut] = useState(false);
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
 
@@ -205,7 +206,8 @@ export default function POS() {
   };
 
   const handleCheckout = async () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || checkingOut) return;
+    setCheckingOut(true);
     const subtotal = cart.reduce((s, i) => s + (i.finalPrice || i.price) * i.qty, 0);
     const finalTotal = Math.max(0, subtotal - discount);
 
@@ -268,6 +270,8 @@ export default function POS() {
       setCustomerPreview({ text: '', type: '', data: null });
     } catch (err) {
       toast(err.message, 'error');
+    } finally {
+      setCheckingOut(false);
     }
   };
 
@@ -604,10 +608,10 @@ export default function POS() {
             <button
               className="btn btn-primary btn-lg"
               style={{ width: '100%' }}
-              disabled={cart.length === 0}
+              disabled={cart.length === 0 || checkingOut}
               onClick={handleCheckout}
             >
-              Checkout
+              {checkingOut ? 'Processing…' : 'Checkout'}
             </button>
           </div>
         </div>

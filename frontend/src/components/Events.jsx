@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { API, toast } from '../api';
 
 const STATUS_COLORS = {
@@ -19,6 +19,7 @@ export default function Events() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [refreshing, setRefreshing] = useState(false);
 
   // Add event modal
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -30,29 +31,35 @@ export default function Events() {
   const [evDesc, setEvDesc] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    loadEvents();
-  }, []);
-
-  const loadEvents = async () => {
-    setLoading(true);
+  const loadEvents = useCallback(async (isManual = false) => {
+    if (isManual) setRefreshing(true);
     try {
       const data = await API.get('/events');
       setEvents(data);
     } catch (err) {
-      toast('Failed to load events: ' + err.message, 'error');
+      if (isManual) toast('Failed to load events: ' + err.message, 'error');
     } finally {
       setLoading(false);
+      if (isManual) setRefreshing(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadEvents();
+    // Poll every 10 seconds for real-time updates
+    const id = setInterval(() => loadEvents(), 10000);
+    return () => clearInterval(id);
+  }, [loadEvents]);
 
   const handleAction = async (id, action) => {
     try {
       if (action === 'approve') {
         await API.patch(`/events/${id}/status`, { status: 'approved' });
         toast('Event approved!', 'success');
-      } else if (action === 'reject' || action === 'delete') {
-        if (!window.confirm('Are you sure you want to remove this event?')) return;
+      } else if (action === 'reject') {
+        await API.patch(`/events/${id}/status`, { status: 'rejected' });
+        toast('Event rejected. Customer notified.', 'warning');
+      } else if (action === 'delete') {
         await API.delete(`/events/${id}`);
         toast('Event removed.', 'warning');
       }
@@ -155,7 +162,19 @@ export default function Events() {
             </button>
           ))}
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => setAddModalOpen(true)}>➕ Add Shop Event</button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => loadEvents(true)}
+            disabled={refreshing}
+            title="Refresh events list"
+            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+          >
+            <span style={{ display: 'inline-block', animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
+          <button className="btn btn-primary btn-sm" onClick={() => setAddModalOpen(true)}>➕ Add Shop Event</button>
+        </div>
       </div>
 
       <div className="card">

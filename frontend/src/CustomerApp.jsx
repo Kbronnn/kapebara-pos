@@ -824,9 +824,27 @@ export default function CustomerApp() {
     finally { setMyOrdersLoading(false); }
   };
 
-  // Load my orders when opening the menu tab
+  const handleCancelOrder = async (orderId) => {
+    try {
+      const res = await fetch(`${API_BASE}/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' })
+      });
+      if (!res.ok) throw new Error('Failed to cancel order');
+      loadMyOrders();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Load my orders when opening the menu tab; also poll every 10s for status updates
   useEffect(() => {
-    if (activeTab === 'tab-menu' && customerId) loadMyOrders();
+    if (activeTab === 'tab-menu' && customerId) {
+      loadMyOrders();
+      const id = setInterval(loadMyOrders, 10000);
+      return () => clearInterval(id);
+    }
   }, [activeTab, customerId]);
 
   const portalCartTotal = portalCart.reduce((s, i) => s + i.price * i.qty, 0);
@@ -1447,7 +1465,9 @@ export default function CustomerApp() {
                   ) : (
                     <div style={{ display: 'grid', gap: '12px' }}>
                       {myOrders.map(order => {
-                        const statusColor = order.status === 'completed' ? { bg: '#d4edda', text: '#155724' } : order.status === 'processing' ? { bg: '#d1ecf1', text: '#0c5460' } : { bg: '#fff3cd', text: '#856404' };
+                        const isCancelled = order.status === 'cancelled';
+                        const statusColor = order.status === 'completed' ? { bg: '#d4edda', text: '#155724' } : order.status === 'processing' ? { bg: '#d1ecf1', text: '#0c5460' } : isCancelled ? { bg: '#f8d7da', text: '#721c24' } : { bg: '#fff3cd', text: '#856404' };
+                        const canCancel = order.status === 'pending';
                         return (
                           <div key={order.id} style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(74,44,10,0.06)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
@@ -1456,13 +1476,23 @@ export default function CustomerApp() {
                                 <div style={{ fontWeight: 700, color: 'var(--espresso)', fontSize: '0.95rem' }}>Order #{order.id?.slice(-6).toUpperCase()}</div>
                               </div>
                               <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: '20px', background: statusColor.bg, color: statusColor.text }}>
-                                {order.status === 'completed' ? '✅ Completed' : order.status === 'processing' ? '⚙️ Processing' : '⏳ Pending'}
+                                {order.status === 'completed' ? '✅ Completed' : order.status === 'processing' ? '⚙️ Processing' : isCancelled ? '❌ Cancelled' : '⏳ Pending'}
                               </span>
                             </div>
                             <div style={{ fontSize: '0.82rem', color: '#666', marginBottom: '8px' }}>
                               {order.items?.map(i => `${i.product_name} ×${i.quantity}`).join(' · ')}
                             </div>
-                            <div style={{ fontWeight: 700, color: 'var(--accent)', fontSize: '1rem' }}>₱{parseFloat(order.total).toFixed(2)}</div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ fontWeight: 700, color: 'var(--accent)', fontSize: '1rem' }}>₱{parseFloat(order.total).toFixed(2)}</div>
+                              {canCancel && (
+                                <button
+                                  onClick={() => handleCancelOrder(order.id)}
+                                  style={{ padding: '5px 14px', background: 'transparent', border: '1.5px solid #dc3545', color: '#dc3545', borderRadius: '8px', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer' }}
+                                >
+                                  ❌ Cancel Order
+                                </button>
+                              )}
+                            </div>
                           </div>
                         );
                       })}

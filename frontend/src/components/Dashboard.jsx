@@ -159,8 +159,8 @@ export default function Dashboard({ navigateTo }) {
   const handleUpdateEventStatus = async (id, status) => {
     try {
       if (status === 'rejected') {
-        await API.delete(`/events/${id}`);
-        toast('Event rejected and removed.', 'warning');
+        await API.patch(`/events/${id}/status`, { status: 'rejected' });
+        toast('Event rejected. Customer notified.', 'warning');
       } else {
         await API.patch(`/events/${id}/status`, { status });
         toast('Event approved successfully!', 'success');
@@ -197,7 +197,24 @@ export default function Dashboard({ navigateTo }) {
     loadOrdersToday();
   };
 
-  const handleUpdateOrderStatus = async (orderId, newStatus) => {
+  const handleCancelOrder = async (orderId, orderNum = '') => {
+    setUpdatingOrderId(orderId);
+    try {
+      await API.patch(`/orders/${orderId}/status`, { status: 'cancelled' });
+      setOrdersToday(prev => prev.map(o => ((o._id === orderId || o.id === orderId) ? { ...o, status: 'cancelled' } : o)));
+      toast(`Order ${orderNum || ''} cancelled successfully.`, 'warning');
+      loadData();
+    } catch (err) {
+      toast('Failed to cancel order: ' + err.message, 'error');
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
+  const handleUpdateOrderStatus = async (orderId, newStatus, orderNum = '') => {
+    if (newStatus === 'cancelled') {
+      return handleCancelOrder(orderId, orderNum);
+    }
     setUpdatingOrderId(orderId);
     try {
       await API.patch(`/orders/${orderId}/status`, { status: newStatus });
@@ -523,7 +540,7 @@ export default function Dashboard({ navigateTo }) {
                       className={`orders-tab-btn ${ordersTab === 'pending' ? 'active' : ''}`}
                       onClick={() => setOrdersTab('pending')}
                     >
-                      ⏳ To Be Made <span className="tab-count">{ordersToday.filter(o => o.status !== 'completed').length}</span>
+                      ⏳ To Be Made <span className="tab-count">{ordersToday.filter(o => o.status === 'pending' || o.status === 'processing').length}</span>
                     </button>
                     <button
                       className={`orders-tab-btn ${ordersTab === 'history' ? 'active' : ''}`}
@@ -531,11 +548,19 @@ export default function Dashboard({ navigateTo }) {
                     >
                       ✅ Order History <span className="tab-count">{ordersToday.filter(o => o.status === 'completed').length}</span>
                     </button>
+                    <button
+                      className={`orders-tab-btn ${ordersTab === 'cancelled' ? 'active' : ''}`}
+                      onClick={() => setOrdersTab('cancelled')}
+                    >
+                      ❌ Cancelled <span className="tab-count" style={{ background: ordersTab === 'cancelled' ? 'var(--danger)' : '#fde8e8', color: ordersTab === 'cancelled' ? '#fff' : '#b03a2e' }}>{ordersToday.filter(o => o.status === 'cancelled').length}</span>
+                    </button>
                   </div>
 
                   <div className="orders-tab-panel">
                     {ordersTab === 'pending' ? (
-                      renderOrdersTable(ordersToday.filter(o => o.status !== 'completed'), 'No pending orders right now — all caught up! 🎉', 'pending')
+                      renderOrdersTable(ordersToday.filter(o => o.status === 'pending' || o.status === 'processing'), 'No pending orders right now — all caught up! 🎉', 'pending')
+                    ) : ordersTab === 'cancelled' ? (
+                      renderOrdersTable(ordersToday.filter(o => o.status === 'cancelled'), 'No cancelled orders today.', 'cancelled')
                     ) : (
                       renderOrdersTable(ordersToday.filter(o => o.status === 'completed'), 'No completed orders yet today.', 'history')
                     )}
@@ -553,7 +578,7 @@ export default function Dashboard({ navigateTo }) {
     if (!ordersList.length) {
       return (
         <div className="empty-state" style={{ padding: '30px 0' }}>
-          <div className="empty-state-icon">☕</div>
+          <div className="empty-state-icon">{tabType === 'cancelled' ? '🚫' : '☕'}</div>
           <p>{emptyMsg}</p>
         </div>
       );
@@ -600,57 +625,98 @@ export default function Dashboard({ navigateTo }) {
               const orderYear = o.created_at ? new Date(o.created_at).getFullYear() : new Date().getFullYear();
               const orderSeqNum = String(index + 1).padStart(4, '0');
               const displayOrderNum = o.order_number || `#ORD-${orderYear}-${orderSeqNum}`;
+              const isCancelled = o.status === 'cancelled';
+              const isCompleted = o.status === 'completed';
 
               return (
-                <tr key={orderId || index}>
-                  <td className="font-bold" style={{ whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '.82rem' }}>
+                <tr key={orderId || index} style={{ opacity: isCancelled ? 0.7 : 1, background: isCancelled ? '#fffafa' : 'transparent' }}>
+                  <td className="font-bold" style={{ whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '.82rem', textDecoration: isCancelled ? 'line-through' : 'none' }}>
                     {displayOrderNum}
                   </td>
                   <td style={{ whiteSpace: 'nowrap' }}>{time}</td>
                   <td style={{ fontSize: '0.85rem', lineHeight: '1.6' }}>{itemsList}</td>
                   <td>{o.payment_method || 'Cash'}</td>
                   <td>{o.discount > 0 ? '−' + formatPHP(o.discount) : '—'}</td>
-                  <td className="font-bold" style={{ color: 'var(--espresso)' }}>{formatPHP(o.total)}</td>
+                  <td className="font-bold" style={{ color: isCancelled ? 'var(--danger)' : 'var(--espresso)', textDecoration: isCancelled ? 'line-through' : 'none' }}>
+                    {formatPHP(o.total)}
+                  </td>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
                       <select
                         value={o.status || 'pending'}
-                        onChange={(e) => handleUpdateOrderStatus(orderId, e.target.value)}
+                        onChange={(e) => handleUpdateOrderStatus(orderId, e.target.value, displayOrderNum)}
                         disabled={isUpdating}
                         style={{
                           padding: '4px 8px',
                           borderRadius: '6px',
-                          border: '1.5px solid var(--border)',
+                          border: `1.5px solid ${isCancelled ? '#f5c6c6' : isCompleted ? '#c3e6cb' : 'var(--border)'}`,
                           fontSize: '0.78rem',
                           fontWeight: 600,
-                          background: o.status === 'completed' ? 'var(--success-bg, #edf7f0)' : '#fef9ec',
-                          color: o.status === 'completed' ? 'var(--success)' : '#b87c00',
+                          background: isCompleted ? 'var(--success-bg, #edf7f0)' : isCancelled ? '#fdecea' : o.status === 'processing' ? '#e8f4fd' : '#fef9ec',
+                          color: isCompleted ? 'var(--success)' : isCancelled ? 'var(--danger, #b03a2e)' : o.status === 'processing' ? '#0066cc' : '#b87c00',
                           cursor: 'pointer'
                         }}
                       >
                         <option value="pending">⏳ Pending</option>
                         <option value="processing">⚙️ Processing</option>
                         <option value="completed">✅ Done</option>
+                        <option value="cancelled">❌ Cancelled</option>
                       </select>
 
-                      {o.status !== 'completed' ? (
-                        <button
-                          className="btn btn-sm btn-success"
-                          style={{ padding: '4px 10px', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
-                          onClick={() => handleUpdateOrderStatus(orderId, 'completed')}
-                          disabled={isUpdating}
-                        >
-                          {isUpdating ? '...' : '✅ Mark Done'}
-                        </button>
-                      ) : (
+                      {!isCompleted && !isCancelled && (
+                        <>
+                          <button
+                            className="btn btn-sm btn-success"
+                            style={{ padding: '4px 10px', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
+                            onClick={() => handleUpdateOrderStatus(orderId, 'completed', displayOrderNum)}
+                            disabled={isUpdating}
+                          >
+                            {isUpdating ? '...' : '✅ Mark Done'}
+                          </button>
+                          <button
+                            className="btn btn-sm btn-danger"
+                            style={{ padding: '4px 8px', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
+                            onClick={() => handleCancelOrder(orderId, displayOrderNum)}
+                            disabled={isUpdating}
+                            title="Cancel Order"
+                          >
+                            ❌ Cancel
+                          </button>
+                        </>
+                      )}
+
+                      {isCompleted && (
+                        <>
+                          <button
+                            className="btn btn-sm btn-secondary"
+                            style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                            onClick={() => handleUpdateOrderStatus(orderId, 'pending', displayOrderNum)}
+                            disabled={isUpdating}
+                            title="Revert status to Pending"
+                          >
+                            {isUpdating ? '...' : '↩️ To Pending'}
+                          </button>
+                          <button
+                            className="btn btn-sm btn-danger"
+                            style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                            onClick={() => handleCancelOrder(orderId, displayOrderNum)}
+                            disabled={isUpdating}
+                            title="Cancel Order"
+                          >
+                            ❌ Cancel
+                          </button>
+                        </>
+                      )}
+
+                      {isCancelled && (
                         <button
                           className="btn btn-sm btn-secondary"
-                          style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
-                          onClick={() => handleUpdateOrderStatus(orderId, 'pending')}
+                          style={{ padding: '4px 10px', fontSize: '0.75rem', whiteSpace: 'nowrap', borderColor: '#2d7a4f', color: '#2d7a4f' }}
+                          onClick={() => handleUpdateOrderStatus(orderId, 'pending', displayOrderNum)}
                           disabled={isUpdating}
-                          title="Revert status to Pending"
+                          title="Restore this order to Pending"
                         >
-                          {isUpdating ? '...' : '↩️ To Pending'}
+                          {isUpdating ? '...' : '↩️ Restore'}
                         </button>
                       )}
                     </div>

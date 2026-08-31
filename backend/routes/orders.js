@@ -237,6 +237,74 @@ router.patch('/:id/status', async (req, res) => {
       }
     }
 
+    // Handle cancellation: restore inventory & revert points if previously completed
+    if (status === 'cancelled' && prevStatus !== 'cancelled') {
+      // 1. Restore inventory for POS orders
+      if (existingOrder.source === 'pos' && Array.isArray(existingOrder.items)) {
+        for (const item of existingOrder.items) {
+          try {
+            const product = await Product.findById(item.product_id);
+            if (product && Array.isArray(product.ingredients)) {
+              for (const { ingredient_id, quantity_used } of product.ingredients) {
+                await Ingredient.findByIdAndUpdate(
+                  ingredient_id,
+                  { $inc: { current_stock: quantity_used * item.quantity } }
+                );
+              }
+            }
+          } catch (e) {
+            console.error('Failed to restore ingredients on order cancel:', e);
+          }
+        }
+      }
+
+      // 2. Revert points if previously completed
+      if (prevStatus === 'completed') {
+        try {
+          let cust = null;
+          if (existingOrder.customer_id) {
+            cust = await Customer.findById(existingOrder.customer_id);
+          } else if (existingOrder.customer_unique_id) {
+            cust = await Customer.findOne({ unique_id: existingOrder.customer_unique_id });
+          }
+          if (cust) {
+            const ptsEarned = Math.floor(existingOrder.total / 10);
+            if (ptsEarned > 0) {
+              cust.points = Math.max(0, cust.points - ptsEarned);
+              if (cust.points >= 5000) cust.loyalty_level = 'Platinum';
+              else if (cust.points >= 2000) cust.loyalty_level = 'Gold';
+              else if (cust.points >= 500) cust.loyalty_level = 'Silver';
+              else cust.loyalty_level = 'Bronze';
+              await cust.save();
+            }
+          }
+        } catch (ptsErr) {
+          console.error('Failed to revert points on cancel:', ptsErr);
+        }
+      }
+    }
+
+    // Handle un-cancelling (re-deduct inventory if returning from cancelled)
+    if (prevStatus === 'cancelled' && status !== 'cancelled') {
+      if (existingOrder.source === 'pos' && Array.isArray(existingOrder.items)) {
+        for (const item of existingOrder.items) {
+          try {
+            const product = await Product.findById(item.product_id);
+            if (product && Array.isArray(product.ingredients)) {
+              for (const { ingredient_id, quantity_used } of product.ingredients) {
+                await Ingredient.findOneAndUpdate(
+                  { _id: ingredient_id },
+                  [{ $set: { current_stock: { $max: [0, { $subtract: ['$current_stock', quantity_used * item.quantity] }] } } }]
+                );
+              }
+            }
+          } catch (e) {
+            console.error('Failed to re-deduct ingredients on un-cancel:', e);
+          }
+        }
+      }
+    }
+
     res.json({ message: `Order status updated to ${status}`, order: existingOrder.toJSON() });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update order status' });
