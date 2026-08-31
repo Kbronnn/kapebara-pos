@@ -89,6 +89,19 @@ export default function Customers() {
     }
   }
 
+  async function handleDeleteCustomer() {
+    if (!selected) return;
+    if (!window.confirm(`Are you sure you want to delete the customer account for "${selected.name}" (${selected.email || 'No email'})? This action cannot be undone.`)) return;
+    try {
+      await API.delete(`/customer/${selected._id || selected.id}`);
+      toast('Customer deleted successfully', 'success');
+      setSelected(null);
+      loadCustomers();
+    } catch (err) {
+      toast(err.message || 'Failed to delete customer', 'error');
+    }
+  }
+
   const totalCustomers = customers.length;
   const goldCount   = customers.filter(c => c.loyalty_level === 'Gold').length;
   const silverCount = customers.filter(c => c.loyalty_level === 'Silver').length;
@@ -296,6 +309,28 @@ export default function Customers() {
               style={{ marginTop: '18px', width: '100%', padding: '8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.82rem' }}
             >
               ✕ Close
+            </button>
+
+            <button
+              onClick={handleDeleteCustomer}
+              style={{
+                marginTop: '10px',
+                width: '100%',
+                padding: '8px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid #f5c6c6',
+                background: '#fde8e8',
+                color: '#c0392b',
+                cursor: 'pointer',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              🗑️ Delete Customer Account
             </button>
           </div>
         ) : (

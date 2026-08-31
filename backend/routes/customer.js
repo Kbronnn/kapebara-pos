@@ -258,4 +258,15 @@ router.get('/lookup', requireStaff, async (req, res) => {
   }
 });
 
+// ── DELETE customer account — staff / admin only ─────────────────────────────
+router.delete('/:id', requireStaff, async (req, res) => {
+  try {
+    const deleted = await Customer.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Customer not found' });
+    res.json({ message: 'Customer account deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete customer' });
+  }
+});
+
 module.exports = router;
