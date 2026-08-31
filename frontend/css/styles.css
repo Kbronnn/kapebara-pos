@@ -182,12 +182,17 @@ input, select, textarea { font-family: inherit; }
   margin-bottom: 16px;
 }
 
+.mobile-nav-toggle {
+  display: none;
+}
+
 /* ── KPI Grid ──────────────────────────────────────────────────────────── */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  margin-bottom: 24px;
+  width: 100%;
 }
 .kpi-card {
   background: var(--white);
@@ -198,6 +203,7 @@ input, select, textarea { font-family: inherit; }
   position: relative;
   overflow: hidden;
   transition: transform .2s, box-shadow .2s;
+  min-width: 0;
 }
 .kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
 .kpi-card::before {
@@ -221,11 +227,12 @@ input, select, textarea { font-family: inherit; }
 /* ── Charts Grid ───────────────────────────────────────────────────────── */
 .charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
+  grid-template-columns: 2fr 1fr;
+  gap: 18px;
+  margin-bottom: 24px;
+  width: 100%;
 }
-.chart-container { position: relative; height: 240px; }
+.chart-container { position: relative; height: 240px; width: 100%; min-width: 0; }
 
 /* ── Tables ────────────────────────────────────────────────────────────── */
 .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }

@@ -237,7 +237,7 @@ export default function Dashboard({ navigateTo }) {
   const approvedDates = events.filter(e => e.status === 'approved').map(e => e.date ? e.date.split('T')[0] : '');
 
   return (
-    <div>
+    <div style={{ width: '100%' }}>
       {/* Pending Portal Orders Notification Banner */}
       {portalOrders.length > 0 && (
         <div style={{
