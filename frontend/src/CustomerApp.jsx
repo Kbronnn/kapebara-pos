@@ -36,6 +36,11 @@ const TIER_BENEFITS = {
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
+function getTodayDateString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function formatTime12(time24) {
   if (!time24) return '';
   const [h, m] = time24.split(':').map(Number);
@@ -211,6 +216,229 @@ function ConfirmModal({ isOpen, title, message, confirmText = 'Confirm', cancelT
           >
             {loading ? 'Processing…' : confirmText}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Event Verification Pass & Details Modal (Presentable to Staff) ───────────
+function EventVerificationModal({ event, customer, onClose }) {
+  if (!event) return null;
+  const dur = event.duration_hours || getEventDuration(event.preferred_time);
+  const isApproved = event.status === 'approved' || event.status === 'upcoming';
+  const isPending = event.status === 'pending_approval';
+  const isRejected = event.status === 'rejected';
+  const isCancelled = event.status === 'cancelled';
+  const passId = `KB-EVT-${(event._id || event.id || '000000').toString().slice(-6).toUpperCase()}`;
+
+  let statusBadge = { text: '⏳ Pending Staff Review', bg: '#fff3cd', color: '#856404', border: '#fcd34d' };
+  if (isApproved) {
+    statusBadge = { text: '✅ Verified & Confirmed', bg: '#d4edda', color: '#155724', border: '#86efac' };
+  } else if (isRejected) {
+    statusBadge = { text: '❌ Not Approved', bg: '#f8d7da', color: '#721c24', border: '#fca5a5' };
+  } else if (isCancelled) {
+    statusBadge = { text: '🚫 Cancelled', bg: '#f1f2f6', color: '#747d8c', border: '#dee2e6' };
+  }
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return (
+    <div className="event-pass-modal-overlay" onClick={onClose}>
+      <div className="event-pass-card" onClick={e => e.stopPropagation()}>
+        {/* Pass Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #3d2510 0%, #221408 100%)',
+          color: '#fff',
+          padding: '24px 22px 20px',
+          textAlign: 'center',
+          position: 'relative'
+        }}>
+          <button
+            onClick={onClose}
+            className="pass-no-print"
+            style={{
+              position: 'absolute',
+              top: '14px',
+              right: '14px',
+              background: 'rgba(255,255,255,0.18)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.15s'
+            }}
+            title="Close"
+          >
+            ✕
+          </button>
+          
+          <div style={{ fontSize: '0.7rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#d4a373', fontWeight: 700, marginBottom: '6px' }}>
+            ☕ KapeBara Official Pass
+          </div>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.45rem', margin: '0 0 6px 0', color: '#fff', fontWeight: 700 }}>
+            {event.title}
+          </h2>
+          <div style={{
+            display: 'inline-block',
+            background: statusBadge.bg,
+            color: statusBadge.color,
+            border: `1px solid ${statusBadge.border}`,
+            padding: '3px 12px',
+            borderRadius: '20px',
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            marginTop: '4px'
+          }}>
+            {statusBadge.text}
+          </div>
+        </div>
+
+        {/* Ticket Perforated Divider */}
+        <div style={{
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 16px',
+          background: '#fffdfa',
+          margin: '-9px 0'
+        }}>
+          <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'rgba(20, 15, 10, 0.72)', marginLeft: '-25px' }}></div>
+          <div style={{ flex: 1, borderBottom: '2px dashed #eeddcc', margin: '0 12px' }}></div>
+          <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'rgba(20, 15, 10, 0.72)', marginRight: '-25px' }}></div>
+        </div>
+
+        {/* Pass Details Body */}
+        <div style={{ padding: '22px 22px 20px', fontSize: '0.88rem', color: '#4a3728' }}>
+          
+          {/* Reference and Venue Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px', background: '#faf5ee', padding: '12px 14px', borderRadius: '12px', border: '1px solid #eeddcc' }}>
+            <div>
+              <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#8c7355', fontWeight: 700, letterSpacing: '0.05em' }}>Pass / Ref ID</div>
+              <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.95rem', color: '#3d2510', marginTop: '2px' }}>{passId}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#8c7355', fontWeight: 700, letterSpacing: '0.05em' }}>Venue</div>
+              <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#3d2510', marginTop: '2px' }}>☕ KapeBara Sanctuary</div>
+            </div>
+          </div>
+
+          {/* Customer & Event Details */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+            <div>
+              <div style={{ fontSize: '0.7rem', color: '#8c7355', fontWeight: 600 }}>Attendee / Participant</div>
+              <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#2b1f17', marginTop: '2px' }}>
+                {customer?.name || event.host_name || 'Guest'}
+              </div>
+              {customer?.unique_id && (
+                <div style={{ fontSize: '0.72rem', color: '#d4a373', fontWeight: 600 }}>
+                  ID: {customer.unique_id} ({customer.loyalty_level || 'Member'})
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div style={{ fontSize: '0.7rem', color: '#8c7355', fontWeight: 600 }}>Event Host</div>
+              <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#2b1f17', marginTop: '2px' }}>
+                {event.host_name || 'KapeBara'}
+              </div>
+              {event.phone && <div style={{ fontSize: '0.72rem', color: '#666' }}>📞 {event.phone}</div>}
+            </div>
+
+            <div>
+              <div style={{ fontSize: '0.7rem', color: '#8c7355', fontWeight: 600 }}>Date &amp; Schedule</div>
+              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#2b1f17', marginTop: '2px' }}>
+                📅 {new Date(event.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '0.7rem', color: '#8c7355', fontWeight: 600 }}>Time &amp; Duration</div>
+              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#d4a373', marginTop: '2px' }}>
+                🕐 {formatTimeRange(event.preferred_time, dur)}
+              </div>
+            </div>
+          </div>
+
+          {/* Event description / notes */}
+          {event.description && (
+            <div style={{ background: '#fdfbf7', border: '1px solid #f0e6da', borderRadius: '10px', padding: '10px 12px', marginBottom: '14px', fontSize: '0.8rem', color: '#666', fontStyle: 'italic' }}>
+              "{event.description}"
+            </div>
+          )}
+
+          {/* Verification Instructions Note */}
+          <div style={{
+            background: isApproved ? '#e8f5e9' : isPending ? '#fff9e6' : '#f8f9fa',
+            border: isApproved ? '1.5px solid #a5d6a7' : isPending ? '1.5px solid #f9d887' : '1.5px solid #dee2e6',
+            borderRadius: '12px',
+            padding: '12px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '18px'
+          }}>
+            <span style={{ fontSize: '1.5rem', flexShrink: 0 }}>{isApproved ? '🎟️' : isPending ? '⏳' : 'ℹ️'}</span>
+            <div style={{ fontSize: '0.78rem', color: isApproved ? '#1b5e20' : isPending ? '#7c5415' : '#555', lineHeight: 1.45 }}>
+              <strong>Staff Verification Instructions:</strong><br/>
+              {isApproved
+                ? 'Present this digital pass or booking confirmation to KapeBara staff upon arrival at the shop to verify your spot.'
+                : isPending
+                ? 'Your booking is currently pending review by KapeBara staff. You will be notified once verified and approved.'
+                : 'Please consult KapeBara staff at the counter if you have any questions regarding your booking.'}
+            </div>
+          </div>
+
+          {/* Modal Actions */}
+          <div className="pass-no-print" style={{ display: 'flex', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                flex: 1,
+                padding: '10px 16px',
+                borderRadius: '12px',
+                border: '1.5px solid #ddd',
+                background: '#f8f8f8',
+                color: '#555',
+                fontSize: '0.88rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Close
+            </button>
+            {isApproved && (
+              <button
+                type="button"
+                onClick={handlePrint}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: 'var(--accent, #d4a373)',
+                  color: '#fff',
+                  fontSize: '0.88rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(212,163,115,0.35)'
+                }}
+              >
+                🖨️ Print / Save Pass
+              </button>
+            )}
+          </div>
+
         </div>
       </div>
     </div>
@@ -704,6 +932,7 @@ export default function CustomerApp() {
   });
   const [notifOpen, setNotifOpen] = useState(false);
   const [bellLeaveConfirm, setBellLeaveConfirm] = useState(null); // { eventId, title }
+  const [selectedEventPass, setSelectedEventPass] = useState(null); // event object to show in EventVerificationModal
 
   // Menu state
   const [menuProducts, setMenuProducts] = useState([]);
@@ -1034,6 +1263,13 @@ export default function CustomerApp() {
     e.preventDefault();
     setHostSubmitting(true); setHostMsg({ text: '', color: '' });
     try {
+      const todayStr = getTodayDateString();
+      if (hostForm.date && hostForm.date < todayStr) {
+        setHostMsg({ text: '❌ You cannot book an event on a past date. Please choose today or a future date.', color: '#c0392b' });
+        setHostSubmitting(false);
+        return;
+      }
+
       const maxAllowed = shopSettings.max_people_per_event || 30;
       const maxGuests = Math.min(maxAllowed, Math.max(1, parseInt(hostForm.maxGuests) || 20));
       const res = await fetch(`${API_BASE}/events`, {
@@ -1818,13 +2054,12 @@ export default function CustomerApp() {
                             )}
                             <button
                               onClick={() => {
-                                handleDismissNotification(evId);
-                                setActiveTab('tab-events');
+                                setSelectedEventPass(ev);
                                 setNotifOpen(false);
                               }}
                               style={{ marginTop: '8px', background: 'transparent', border: 'none', color: '#d4a373', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
                             >
-                              View My Events →
+                              View My Event →
                             </button>
                           </div>
                         );
@@ -2095,7 +2330,24 @@ export default function CustomerApp() {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                           <div className="form-group">
                             <label htmlFor="event-date">Proposed Date</label>
-                            <input type="date" id="event-date" required value={hostForm.date} onChange={e => setHostForm(f => ({ ...f, date: e.target.value }))} />
+                            <input
+                              type="date"
+                              id="event-date"
+                              min={getTodayDateString()}
+                              required
+                              value={hostForm.date}
+                              onChange={e => {
+                                const val = e.target.value;
+                                const minD = getTodayDateString();
+                                if (val && val < minD) {
+                                  setHostMsg({ text: '❌ Past dates are not allowed. Please choose today or a future date.', color: '#c0392b' });
+                                  setHostForm(f => ({ ...f, date: '' }));
+                                  return;
+                                }
+                                setHostMsg({ text: '', color: '' });
+                                setHostForm(f => ({ ...f, date: val }));
+                              }}
+                            />
                           </div>
                           <div className="form-group">
                             <label htmlFor="event-time">Preferred Start Time</label>
@@ -2506,6 +2758,13 @@ export default function CustomerApp() {
             </div>
           </div>
         </div>
+      )}
+      {selectedEventPass && (
+        <EventVerificationModal
+          event={selectedEventPass}
+          customer={customer}
+          onClose={() => setSelectedEventPass(null)}
+        />
       )}
       <ConfirmModal
         isOpen={!!bellLeaveConfirm}

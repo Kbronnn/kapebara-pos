@@ -294,7 +294,7 @@ export default function Events() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="form-group">
                     <label className="form-label">Date</label>
-                    <input type="date" className="form-control" required value={evDate} onChange={e => setEvDate(e.target.value)} />
+                    <input type="date" className="form-control" min={new Date().toISOString().slice(0, 10)} required value={evDate} onChange={e => setEvDate(e.target.value)} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Start Time</label>

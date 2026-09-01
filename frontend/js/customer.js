@@ -634,6 +634,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const max_participants = Math.min(shopSettings.max_people_per_event || 30, Math.max(1, max_val));
     const btn            = hostEventForm.querySelector('button[type="submit"]');
 
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    if (date && date < todayStr) {
+      formMessage.style.color = '#c0392b';
+      formMessage.textContent = '❌ Cannot book an event on a past date. Please choose today or a future date.';
+      return;
+    }
+
     btn.disabled         = true;
     btn.textContent      = 'Submitting…';
     formMessage.textContent = '';

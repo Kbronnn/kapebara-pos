@@ -42,4 +42,15 @@ router.post('/', async (req, res) => {
   }
 });
 
+// DELETE a rating by ID
+router.delete('/:id', async (req, res) => {
+  try {
+    const deleted = await Rating.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Rating not found' });
+    res.json({ message: 'Rating deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete rating' });
+  }
+});
+
 module.exports = router;

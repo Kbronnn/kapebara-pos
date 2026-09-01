@@ -151,7 +151,7 @@ function openAddShopEventModal() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="form-group">
           <label class="form-label">Date</label>
-          <input type="date" id="sev-date" class="form-control" value="${dateDefault}" required>
+          <input type="date" id="sev-date" class="form-control" min="${dateDefault}" value="${dateDefault}" required>
         </div>
         <div class="form-group">
           <label class="form-label">Start Time</label>

@@ -2,9 +2,9 @@ services:
   - type: web
     name: kapebara
     runtime: node
-    rootDir: backend
-    buildCommand: npm install
-    startCommand: node server.js
+    rootDir: .
+    buildCommand: cd frontend && npm install && node node_modules/vite/bin/vite.js build && cd ../backend && npm install
+    startCommand: node backend/server.js
     envVars:
       - key: MONGODB_URI
         sync: false

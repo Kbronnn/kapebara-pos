@@ -233,6 +233,16 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'Title, date, and hostName are required' });
 
   try {
+    // 0. Past date check
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const reqDate = (date || '').split('T')[0];
+    if (reqDate < todayStr) {
+      return res.status(400).json({
+        error: 'Cannot book an event on a past date. Please choose today or a future date.'
+      });
+    }
+
     // Get shop settings singleton (or defaults)
     const settings = await ShopSettings.findOne() || {
       max_people_per_event: 30,
