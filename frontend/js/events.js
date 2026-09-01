@@ -20,7 +20,7 @@ async function loadAdminEvents() {
 
   const pending  = events.filter(e => e.status === 'pending_approval');
   const approved = events.filter(e => (e.status === 'approved' || e.status === 'upcoming') && (e.date ? e.date.split('T')[0] : '') >= todayStr);
-  const past     = events.filter(e => e.status === 'rejected' || ((e.status === 'approved' || e.status === 'upcoming') && (e.date ? e.date.split('T')[0] : '') < todayStr));
+  const past     = events.filter(e => e.status === 'rejected' || e.status === 'cancelled' || ((e.status === 'approved' || e.status === 'upcoming') && (e.date ? e.date.split('T')[0] : '') < todayStr));
 
   const sortByDate = (arr) => {
     const getSortKey = (e) => {
@@ -39,10 +39,10 @@ async function loadAdminEvents() {
     <!-- Header with Add button -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
       <div class="period-tabs" style="margin:0;">
-        <button class="period-tab ${adminEventsFilter==='all'?'active':''}" onclick="setEventsFilter('all')">All Events (${all.length})</button>
+        <button class="period-tab ${adminEventsFilter==='all'?'active':''}" onclick="setEventsFilter('all')">All Events (${events.length})</button>
         <button class="period-tab ${adminEventsFilter==='pending'?'active':''}" onclick="setEventsFilter('pending')">⏳ Pending (${pending.length})</button>
         <button class="period-tab ${adminEventsFilter==='approved'?'active':''}" onclick="setEventsFilter('approved')">✅ Approved (${approved.length})</button>
-        <button class="period-tab ${adminEventsFilter==='past'?'active':''}" onclick="setEventsFilter('past')">🗓 Past/Rejected</button>
+        <button class="period-tab ${adminEventsFilter==='past'?'active':''}" onclick="setEventsFilter('past')">🗓 Past / Inactive (${past.length})</button>
       </div>
       <button class="btn btn-primary btn-sm" onclick="openAddShopEventModal()">➕ Add Shop Event</button>
     </div>
@@ -81,12 +81,16 @@ function renderAdminEventRow(e) {
     approved:         { bg:'#d4edda', color:'#155724' },
     upcoming:         { bg:'#d4edda', color:'#155724' },
     rejected:         { bg:'#f8d7da', color:'#721c24' },
+    cancelled:        { bg:'#f1f2f6', color:'#747d8c' },
   };
   const sc = statusColors[e.status] || { bg:'#e2e3e5', color:'#383d41' };
   const statusBadge = `<span style="background:${sc.bg};color:${sc.color};padding:3px 8px;border-radius:12px;font-size:0.78rem;font-weight:700">${e.status.replace('_',' ').toUpperCase()}</span>`;
   const privBadge   = e.is_private
     ? `<span style="background:#ede7f6;color:#512da8;padding:3px 7px;border-radius:12px;font-size:0.78rem;">🔒 Private</span>`
     : `<span style="background:#e8f5e9;color:#2e7d32;padding:3px 7px;border-radius:12px;font-size:0.78rem;">🌐 Public</span>`;
+
+  const regCount = (e.participants && e.participants.length) || (e.participant_names && e.participant_names.length) || 0;
+  const regNames = e.participant_names && e.participant_names.length ? `Registered (${e.participant_names.length}): ${e.participant_names.join(', ')}` : `${regCount} registered`;
 
   const actionBtns = [];
   if (e.status === 'pending_approval') {
@@ -106,7 +110,7 @@ function renderAdminEventRow(e) {
     <td style="font-size:0.82rem">${e.phone||'—'}</td>
     <td style="white-space:nowrap">${friendly}</td>
     <td style="white-space:nowrap;font-weight:600">${timeDisplay}</td>
-    <td style="text-align:center">${e.max_participants||30}</td>
+    <td style="text-align:center" title="${regNames}"><span style="font-weight:700;color:var(--espresso,#2c1810)">${regCount}</span> <span style="color:#888;font-size:0.85em">/ ${e.max_participants||30}</span></td>
     <td>${privBadge}</td>
     <td>${statusBadge}</td>
     <td style="white-space:nowrap">${actionBtns.join('')}</td>

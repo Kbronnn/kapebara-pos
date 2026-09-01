@@ -6,6 +6,7 @@ const STATUS_COLORS = {
   approved:         { bg: '#d4edda', color: '#155724' },
   upcoming:         { bg: '#d4edda', color: '#155724' },
   rejected:         { bg: '#f8d7da', color: '#721c24' },
+  cancelled:        { bg: '#f1f2f6', color: '#747d8c' },
 };
 
 function formatTime12(timeStr) {
@@ -142,7 +143,7 @@ export default function Events() {
   const todayStr = getTodayStr();
   const pending  = events.filter(e => e.status === 'pending_approval');
   const approved = events.filter(e => (e.status === 'approved' || e.status === 'upcoming') && (e.date ? e.date.split('T')[0] : '') >= todayStr);
-  const past     = events.filter(e => e.status === 'rejected' || ((e.status === 'approved' || e.status === 'upcoming') && (e.date ? e.date.split('T')[0] : '') < todayStr));
+  const past     = events.filter(e => e.status === 'rejected' || e.status === 'cancelled' || ((e.status === 'approved' || e.status === 'upcoming') && (e.date ? e.date.split('T')[0] : '') < todayStr));
 
   // Sort helper: upcoming (present → future) first (closest to present first), then past (most recent past → oldest)
   const sortByDate = (arr) => {
@@ -176,7 +177,7 @@ export default function Events() {
             { key: 'all', label: `All Events (${events.length})` },
             { key: 'pending', label: `⏳ Pending (${pending.length})` },
             { key: 'approved', label: `✅ Approved (${approved.length})` },
-            { key: 'past', label: '🗓 Past/Rejected' },
+            { key: 'past', label: `🗓 Past / Inactive (${past.length})` },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -228,6 +229,8 @@ export default function Events() {
                   const sc = STATUS_COLORS[e.status] || { bg: '#e2e3e5', color: '#383d41' };
                   const isPending = e.status === 'pending_approval';
                   const isApproved = e.status === 'approved' || e.status === 'upcoming';
+                  const regCount = (e.participants && e.participants.length) || (e.participant_names && e.participant_names.length) || 0;
+                  const regNames = e.participant_names && e.participant_names.length ? `Registered (${e.participant_names.length}): ${e.participant_names.join(', ')}` : `${regCount} registered`;
 
                   return (
                     <tr key={e.id}>
@@ -236,7 +239,10 @@ export default function Events() {
                       <td style={{ fontSize: '0.82rem' }}>{e.phone || '—'}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>{friendly}</td>
                       <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{formatTimeRange(e.preferred_time, e.duration_hours)}</td>
-                      <td style={{ textAlign: 'center' }}>{e.max_participants || 30}</td>
+                      <td style={{ textAlign: 'center' }} title={regNames}>
+                        <span style={{ fontWeight: 700, color: 'var(--espresso, #2c1810)' }}>{regCount}</span>
+                        <span style={{ color: '#888', fontSize: '0.85em' }}> / {e.max_participants || 30}</span>
+                      </td>
                       <td>
                         {e.is_private
                           ? <span style={{ background: '#ede7f6', color: '#512da8', padding: '3px 7px', borderRadius: '12px', fontSize: '0.78rem' }}>🔒 Private</span>

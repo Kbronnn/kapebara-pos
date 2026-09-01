@@ -91,11 +91,32 @@ router.get('/my/:customerId', async (req, res) => {
 
     const events = await Event.find({
       $or: orConditions
-    }).sort({ created_at: -1 });
+    }).sort({ updated_at: -1, created_at: -1 });
 
     res.json(events);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch customer events' });
+  }
+});
+
+// ── PATCH mark all events as notified for a customer ──────────────────────────
+router.patch('/my/:customerId/mark-all-read', async (req, res) => {
+  try {
+    const { customerId } = req.params;
+    const { host_name } = req.query;
+
+    const orConditions = [
+      { customer_id: customerId },
+      { participants: customerId }
+    ];
+    if (host_name && host_name.trim()) {
+      orConditions.push({ host_name: new RegExp(`^${host_name.trim()}$`, 'i') });
+    }
+
+    await Event.updateMany({ $or: orConditions }, { approval_notified: true });
+    res.json({ message: 'All notifications marked as read' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to mark all as notified' });
   }
 });
 
@@ -130,6 +151,7 @@ router.post('/:id/join', async (req, res) => {
     if (participant_name && participant_name.trim()) {
       event.participant_names.push(participant_name.trim());
     }
+    event.updated_at = new Date();
     await event.save();
     res.json({ message: 'Successfully joined event!', spots_remaining: event.max_participants - event.participants.length });
   } catch (err) {
@@ -157,6 +179,7 @@ router.post('/:id/leave', async (req, res) => {
       }
     }
 
+    event.updated_at = new Date();
     await event.save();
     res.json({ message: 'Successfully left the event', spots_remaining: event.max_participants - event.participants.length });
   } catch (err) {
@@ -177,6 +200,8 @@ router.post('/:id/cancel', async (req, res) => {
     }
 
     event.status = 'cancelled';
+    event.approval_notified = true;
+    event.updated_at = new Date();
     await event.save();
     res.json({ message: 'Event request cancelled successfully' });
   } catch (err) {
@@ -285,7 +310,9 @@ router.post('/', async (req, res) => {
       type:             req.body.type    || 'customer',
       host_name:        hostName,
       status:           req.body.type === 'shop' ? 'approved' : 'pending_approval',
-      customer_id:      customer_id      || null
+      customer_id:      customer_id      || null,
+      created_at:       new Date(),
+      updated_at:       new Date()
     });
     res.status(201).json({ message: 'Event request submitted successfully!', id: event.id });
   } catch (err) {
@@ -302,8 +329,8 @@ router.patch('/:id/status', async (req, res) => {
     return res.status(400).json({ error: 'Invalid status value' });
 
   try {
-    // On approval/rejection, reset notification flag so customer gets notified
-    const updates = { status: cleanStatus, approval_notified: false };
+    // On approval/rejection, reset notification flag so customer gets notified, and set updated_at so recent action floats to top
+    const updates = { status: cleanStatus, approval_notified: false, updated_at: new Date() };
     const event = await Event.findByIdAndUpdate(req.params.id, updates, { new: true });
     if (!event) return res.status(404).json({ error: 'Event not found' });
     res.json({ message: `Event ${cleanStatus} successfully.` });

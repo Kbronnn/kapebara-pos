@@ -426,6 +426,9 @@ export default function Dashboard({ navigateTo }) {
                       ? <span className="badge" style={{ background: '#ede7f6', color: '#512da8' }}>🔒 Private</span>
                       : <span className="badge badge-ok">🌐 Public</span>;
 
+                    const regCount = (e.participants && e.participants.length) || (e.participant_names && e.participant_names.length) || 0;
+                    const regNames = e.participant_names && e.participant_names.length ? `Registered (${e.participant_names.length}): ${e.participant_names.join(', ')}` : `${regCount} registered`;
+
                     return (
                       <tr key={e.id}>
                         <td className="font-bold">{e.title || '—'}</td>
@@ -433,7 +436,10 @@ export default function Dashboard({ navigateTo }) {
                         <td style={{ fontSize: '0.85rem' }}>{e.phone || '—'}</td>
                         <td style={{ whiteSpace: 'nowrap' }}>{friendly}</td>
                         <td style={{ whiteSpace: 'nowrap', fontWeight: 6 }}>{timeDisplay}</td>
-                        <td style={{ textAlign: 'center' }}>{e.max_participants || 30}</td>
+                        <td style={{ textAlign: 'center' }} title={regNames}>
+                          <span style={{ fontWeight: 700, color: 'var(--espresso, #2c1810)' }}>{regCount}</span>
+                          <span style={{ color: '#888', fontSize: '0.85em' }}> / {e.max_participants || 30}</span>
+                        </td>
                         <td>{privateBadge}</td>
                         <td>{availBadge}</td>
                         <td style={{ maxWidth: '180px', fontSize: '0.85rem', color: 'var(--text-light)' }}>{e.description || '—'}</td>

@@ -187,14 +187,15 @@ async function loadEventRequests() {
         : '—';
       const privateBadge = e.is_private
         ? `<span class="badge" style="background:#ede7f6;color:#512da8">🔒 Private</span>`
-        : `<span class="badge badge-ok">🌐 Public</span>`;
+      const regCount = (e.participants && e.participants.length) || (e.participant_names && e.participant_names.length) || 0;
+      const regNames = e.participant_names && e.participant_names.length ? `Registered (${e.participant_names.length}): ${e.participant_names.join(', ')}` : `${regCount} registered`;
       return `<tr>
               <td class="font-bold">${e.title || '—'}</td>
               <td>${e.host_name || '—'}</td>
               <td style="font-size:0.85rem">${e.phone || '—'}</td>
               <td style="white-space:nowrap">${friendly}</td>
               <td style="white-space:nowrap;font-weight:600">${timeDisplay}</td>
-              <td style="text-align:center">${e.max_participants || 30}</td>
+              <td style="text-align:center" title="${regNames}"><span style="font-weight:700;color:var(--espresso,#2c1810)">${regCount}</span> <span style="color:#888;font-size:0.85em">/ ${e.max_participants || 30}</span></td>
               <td>${privateBadge}</td>
               <td>${availBadge}</td>
               <td style="max-width:180px;font-size:0.85rem;color:var(--text-light)">${e.description || '—'}</td>

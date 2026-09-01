@@ -67,6 +67,24 @@ function formatTimeRange(time24, durationHours = null) {
   return `${formatTime12(time24)} – ${formatTime12(end)}`;
 }
 
+function generateTimeSlots(openTime = '14:00', closeTime = '00:00') {
+  const [oh, om] = (openTime || '14:00').split(':').map(Number);
+  const [ch, cm] = (closeTime || '00:00').split(':').map(Number);
+  const openMin = (isNaN(oh) ? 14 : oh) * 60 + (isNaN(om) ? 0 : om);
+  let closeMin = (isNaN(ch) ? 0 : ch) * 60 + (isNaN(cm) ? 0 : cm);
+  if (closeMin <= openMin) closeMin += 24 * 60;
+
+  const slots = [];
+  for (let m = openMin; m <= closeMin; m += 30) {
+    const h24 = Math.floor(m / 60) % 24;
+    const min = m % 60;
+    const val = `${String(h24).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+    const label = `${h24 % 12 || 12}:${String(min).padStart(2, '0')} ${h24 >= 12 ? 'PM' : 'AM'}`;
+    slots.push({ value: val, label });
+  }
+  return slots.length ? slots : [{ value: '14:00', label: '2:00 PM' }];
+}
+
 function getEventTimeStatus(ev) {
   if (!ev.date) return 'upcoming';
   const dur = ev.duration_hours || getEventDuration(ev.preferred_time);
@@ -597,7 +615,7 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
                   {ev.is_private ? '🔒 Private' : '🔓 Public'}
                 </span>
                 <span style={{ color: 'var(--text-light)', fontWeight: 500 }}>
-                  👥 {ev.max_participants} max guests
+                  👥 {(ev.participants && ev.participants.length) || (ev.participant_names && ev.participant_names.length) || 0} / {ev.max_participants} registered guests
                 </span>
               </div>
 
@@ -672,6 +690,18 @@ export default function CustomerApp() {
   const [customer, setCustomer] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [joinedEvents, setJoinedEvents] = useState([]);
+  const [dismissedNotifIds, setDismissedNotifIds] = useState(() => {
+    try {
+      const cId = sessionStorage.getItem('customerId');
+      return cId ? JSON.parse(localStorage.getItem(`dismissed_notifs_${cId}`) || '[]') : [];
+    } catch { return []; }
+  });
+  const [readNotifIds, setReadNotifIds] = useState(() => {
+    try {
+      const cId = sessionStorage.getItem('customerId');
+      return cId ? JSON.parse(localStorage.getItem(`read_notifs_${cId}`) || '[]') : [];
+    } catch { return []; }
+  });
   const [notifOpen, setNotifOpen] = useState(false);
   const [bellLeaveConfirm, setBellLeaveConfirm] = useState(null); // { eventId, title }
 
@@ -688,7 +718,7 @@ export default function CustomerApp() {
   const [ratingLoading, setRatingLoading] = useState(false);
 
   // Host event form
-  const [shopSettings, setShopSettings] = useState({ max_people_per_event: 30 });
+  const [shopSettings, setShopSettings] = useState({ max_people_per_event: 30, max_concurrent_events: 1, shop_open_time: '14:00', shop_close_time: '00:00' });
   const [hostForm, setHostForm] = useState({ title: '', date: '', time: '14:00', phone: '', desc: '', isPrivate: false, maxGuests: 20 });
   const [hostMsg, setHostMsg] = useState({ text: '', color: '' });
   const [hostSubmitting, setHostSubmitting] = useState(false);
@@ -721,6 +751,53 @@ export default function CustomerApp() {
   const [custDrinkAddon, setCustDrinkAddon] = useState('None');
   const [custAddons, setCustAddons] = useState([]);
 
+  // Sort notifications by recent action (updated_at desc, created_at desc)
+  const sortedNotifications = [...notifications].sort((a, b) => {
+    const timeB = new Date(b.updated_at || b.created_at || 0).getTime();
+    const timeA = new Date(a.updated_at || a.created_at || 0).getTime();
+    return timeB - timeA;
+  });
+
+  const visibleNotifications = sortedNotifications.filter(ev => {
+    const id = ev._id || ev.id;
+    return !dismissedNotifIds.includes(id);
+  });
+
+  // Unread count: only non-dismissed, non-read, non-cancelled events with approval_notified === false
+  const unreadNotifications = visibleNotifications.filter(ev => {
+    const id = ev._id || ev.id;
+    return ev.approval_notified === false && ev.status !== 'cancelled' && !readNotifIds.includes(id);
+  });
+
+  const unreadCount = unreadNotifications.length;
+
+  const handleMarkAllNotifsRead = async () => {
+    if (!customerId) return;
+    try {
+      const allIds = notifications.map(n => n._id || n.id);
+      const newRead = Array.from(new Set([...readNotifIds, ...allIds]));
+      setReadNotifIds(newRead);
+      try { localStorage.setItem(`read_notifs_${customerId}`, JSON.stringify(newRead)); } catch {}
+      await fetch(`${API_BASE}/events/my/${customerId}/mark-all-read${customerName ? `?host_name=${encodeURIComponent(customerName)}` : ''}`, { method: 'PATCH' });
+      setNotifications(prev => prev.map(n => ({ ...n, approval_notified: true })));
+    } catch {}
+  };
+
+  const handleDismissNotification = (eventId) => {
+    const id = eventId;
+    const newDismissed = Array.from(new Set([...dismissedNotifIds, id]));
+    const newRead = Array.from(new Set([...readNotifIds, id]));
+    setDismissedNotifIds(newDismissed);
+    setReadNotifIds(newRead);
+    try {
+      if (customerId) {
+        localStorage.setItem(`dismissed_notifs_${customerId}`, JSON.stringify(newDismissed));
+        localStorage.setItem(`read_notifs_${customerId}`, JSON.stringify(newRead));
+      }
+    } catch {}
+    fetch(`${API_BASE}/events/${id}/notified`, { method: 'PATCH' }).catch(() => {});
+  };
+
   // ── Initial auth check & real-time stock polling ─────────────────────────────
   useEffect(() => {
     const savedId = sessionStorage.getItem('customerId');
@@ -733,8 +810,11 @@ export default function CustomerApp() {
     loadRatings();
     loadShopSettings();
 
-    // Poll real-time stock & menu products every 5 seconds
-    const interval = setInterval(loadMenuProducts, 5000);
+    // Poll real-time stock & shop settings every 5 seconds
+    const interval = setInterval(() => {
+      loadMenuProducts();
+      loadShopSettings();
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -764,6 +844,7 @@ export default function CustomerApp() {
       const notifInterval = setInterval(() => {
         loadJoinedEvents(customerId);
         loadApprovalNotifications(customerId, customerName);
+        loadShopSettings();
       }, 5000);
       return () => clearInterval(notifInterval);
     }
@@ -855,6 +936,10 @@ export default function CustomerApp() {
       if (data.token) sessionStorage.setItem('customerToken', data.token);
       setCustomerId(data.customerId);
       setCustomerName(data.name);
+      try {
+        setDismissedNotifIds(JSON.parse(localStorage.getItem(`dismissed_notifs_${data.customerId}`) || '[]'));
+        setReadNotifIds(JSON.parse(localStorage.getItem(`read_notifs_${data.customerId}`) || '[]'));
+      } catch {}
       setLoginEmail(''); setLoginPass('');
       setView('portal');
       setActiveTab('tab-benefits');
@@ -903,6 +988,10 @@ export default function CustomerApp() {
       if (data.token) sessionStorage.setItem('customerToken', data.token);
       setCustomerId(data.customerId);
       setCustomerName(savedName);
+      try {
+        setDismissedNotifIds(JSON.parse(localStorage.getItem(`dismissed_notifs_${data.customerId}`) || '[]'));
+        setReadNotifIds(JSON.parse(localStorage.getItem(`read_notifs_${data.customerId}`) || '[]'));
+      } catch {}
       setRegName(''); setRegEmail(''); setRegPass(''); setRegConfirmPass(''); setRegPhone('');
       setView('portal');
       setActiveTab('tab-benefits');
@@ -916,6 +1005,8 @@ export default function CustomerApp() {
     sessionStorage.removeItem('customerToken');
     setCustomerId(null); setCustomerName(''); setCustomer(null);
     setNotifications([]);
+    setDismissedNotifIds([]);
+    setReadNotifIds([]);
     setView('landing');
   };
 
@@ -1556,7 +1647,7 @@ export default function CustomerApp() {
                 title="Event Notifications & Reminders"
               >
                 🔔
-                {(notifications.length + joinedEvents.length) > 0 && (
+                {unreadCount > 0 && (
                   <span style={{
                     position: 'absolute',
                     top: '-4px',
@@ -1570,7 +1661,7 @@ export default function CustomerApp() {
                     border: '2px solid #fff',
                     lineHeight: 1.2
                   }}>
-                    {notifications.length + joinedEvents.length}
+                    {unreadCount}
                   </span>
                 )}
               </button>
@@ -1598,71 +1689,136 @@ export default function CustomerApp() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
                     <span style={{ fontWeight: 700, color: 'var(--espresso)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       🔔 Notifications
-                      {(notifications.length + joinedEvents.length) > 0 && (
+                      {unreadCount > 0 && (
                         <span style={{ background: '#e74c3c', color: '#fff', borderRadius: '10px', padding: '1px 8px', fontSize: '0.72rem', fontWeight: 700 }}>
-                          {notifications.length + joinedEvents.length}
+                          {unreadCount}
                         </span>
                       )}
                     </span>
-                    <button
-                      onClick={() => setNotifOpen(false)}
-                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#888' }}
-                    >
-                      ✕
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {visibleNotifications.length > 0 && (
+                        <button
+                          onClick={handleMarkAllNotifsRead}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#d4a373',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            padding: 0
+                          }}
+                        >
+                          Mark all as read
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setNotifOpen(false)}
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#888' }}
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
 
                   {/* ── Approval / Rejection Status Notifications ── */}
-                  {notifications.length > 0 && (
+                  {visibleNotifications.length > 0 && (
                     <div>
                       <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
                         📋 Booking Updates
                       </div>
-                      {notifications.map(ev => {
+                      {visibleNotifications.map(ev => {
+                        const evId = ev._id || ev.id;
                         const isApproved = ev.status === 'approved' || ev.status === 'upcoming';
                         const isRejected = ev.status === 'rejected';
+                        const isCancelled = ev.status === 'cancelled';
+                        const isUnread = ev.approval_notified === false && !readNotifIds.includes(evId) && !isCancelled;
+
+                        let bg = '#fffbf0';
+                        let border = '#fcd34d';
+                        let badgeBg = '#d97706';
+                        let badgeText = '⏳ Pending';
+                        let statusDesc = 'Your booking is under review.';
+
+                        if (isApproved) {
+                          bg = '#f0fdf4';
+                          border = '#86efac';
+                          badgeBg = '#16a34a';
+                          badgeText = '✅ Approved';
+                          statusDesc = '🎉 Your event has been approved! See you there.';
+                        } else if (isRejected) {
+                          bg = '#fff5f5';
+                          border = '#fca5a5';
+                          badgeBg = '#dc2626';
+                          badgeText = '❌ Rejected';
+                          statusDesc = '😔 Your event was not approved. You may contact us for details.';
+                        } else if (isCancelled) {
+                          bg = '#f8f9fa';
+                          border = '#dee2e6';
+                          badgeBg = '#6c757d';
+                          badgeText = '🚫 Cancelled';
+                          statusDesc = 'Your booking request was cancelled.';
+                        }
+
                         return (
-                          <div key={ev._id || ev.id} style={{
-                            background: isApproved ? '#f0fdf4' : isRejected ? '#fff5f5' : '#fffbf0',
-                            border: `1.5px solid ${isApproved ? '#86efac' : isRejected ? '#fca5a5' : '#fcd34d'}`,
+                          <div key={evId} style={{
+                            background: bg,
+                            border: `1.5px solid ${border}`,
                             borderRadius: '10px',
                             padding: '12px',
                             fontSize: '0.85rem',
-                            marginBottom: '8px'
+                            marginBottom: '8px',
+                            position: 'relative',
+                            boxShadow: isUnread ? '0 2px 8px rgba(0,0,0,0.06)' : 'none'
                           }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-                              <div style={{ fontWeight: 700, color: 'var(--espresso)', flex: 1, marginRight: '8px', fontSize: '0.88rem' }}>
+                              <div style={{ fontWeight: 700, color: 'var(--espresso)', flex: 1, marginRight: '8px', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {isUnread && <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#e74c3c', display: 'inline-block' }} title="New notification"></span>}
                                 {ev.title}
                               </div>
-                              <span style={{
-                                background: isApproved ? '#16a34a' : isRejected ? '#dc2626' : '#d97706',
-                                color: '#fff',
-                                fontSize: '0.65rem',
-                                fontWeight: 700,
-                                padding: '3px 8px',
-                                borderRadius: '20px',
-                                whiteSpace: 'nowrap',
-                                flexShrink: 0
-                              }}>
-                                {isApproved ? '✅ Approved' : isRejected ? '❌ Rejected' : '⏳ Pending'}
-                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{
+                                  background: badgeBg,
+                                  color: '#fff',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 700,
+                                  padding: '3px 8px',
+                                  borderRadius: '20px',
+                                  whiteSpace: 'nowrap',
+                                  flexShrink: 0
+                                }}>
+                                  {badgeText}
+                                </span>
+                                <button
+                                  onClick={() => handleDismissNotification(evId)}
+                                  title="Dismiss notification"
+                                  style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: '#999',
+                                    fontSize: '0.8rem',
+                                    lineHeight: 1,
+                                    padding: '2px',
+                                    borderRadius: '4px'
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              </div>
                             </div>
                             <div style={{ color: '#666', fontSize: '0.78rem', lineHeight: 1.5 }}>
-                              {isApproved
-                                ? '🎉 Your event has been approved! See you there.'
-                                : isRejected
-                                ? '😔 Your event was not approved. You may contact us for details.'
-                                : 'Your booking is under review.'}
+                              {statusDesc}
                             </div>
                             {ev.date && (
                               <div style={{ color: '#d4a373', fontWeight: 600, fontSize: '0.75rem', marginTop: '5px' }}>
                                 📅 {new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                {ev.preferred_time && ` • 🕐 ${formatTimeRange(ev.preferred_time, ev.duration_hours || getEventDuration(ev.preferred_time))}`}
                               </div>
                             )}
                             <button
                               onClick={() => {
-                                fetch(`${API_BASE}/events/${ev._id || ev.id}/notified`, { method: 'PATCH' }).catch(() => {});
-                                setNotifications(prev => prev.filter(n => (n._id || n.id) !== (ev._id || ev.id)));
+                                handleDismissNotification(evId);
                                 setActiveTab('tab-events');
                                 setNotifOpen(false);
                               }}
@@ -1727,7 +1883,7 @@ export default function CustomerApp() {
                   )}
 
                   {/* Empty state */}
-                  {notifications.length === 0 && joinedEvents.length === 0 && (
+                  {visibleNotifications.length === 0 && joinedEvents.length === 0 && (
                     <div style={{ textAlign: 'center', color: '#888', fontSize: '0.85rem', padding: '24px 0' }}>
                       <div style={{ fontSize: '2rem', marginBottom: '8px' }}>☕</div>
                       No notifications yet.<br/>
@@ -1944,11 +2100,9 @@ export default function CustomerApp() {
                           <div className="form-group">
                             <label htmlFor="event-time">Preferred Start Time</label>
                             <select id="event-time" value={hostForm.time} onChange={e => setHostForm(f => ({ ...f, time: e.target.value }))}>
-                              {['14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00','22:30','23:00','23:30','00:00'].map(t => {
-                                const [h, m] = t.split(':').map(Number);
-                                const label = `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
-                                return <option key={t} value={t}>{label}</option>;
-                              })}
+                              {generateTimeSlots(shopSettings.shop_open_time, shopSettings.shop_close_time).map(slot => (
+                                <option key={slot.value} value={slot.value}>{slot.label}</option>
+                              ))}
                             </select>
                           </div>
                         </div>

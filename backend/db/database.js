@@ -101,7 +101,8 @@ const eventSchema = new mongoose.Schema({
   approval_notified:   { type: Boolean, default: false },
   participants:        [{ type: mongoose.Schema.Types.ObjectId, ref: 'Customer' }],
   customer_id:         { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', default: null },
-  created_at:          { type: Date, default: Date.now }
+  created_at:          { type: Date, default: Date.now },
+  updated_at:          { type: Date, default: Date.now }
 }, jsonOpts);
 
 const shopSettingsSchema = new mongoose.Schema({
