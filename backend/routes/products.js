@@ -1,41 +1,74 @@
-const express  = require('express');
-const multer   = require('multer');
-const path     = require('path');
-const fs       = require('fs');
+const express    = require('express');
+const multer     = require('multer');
+const path       = require('path');
+const fs         = require('fs');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { Product, Ingredient } = require('../db/database');
 
 const router = express.Router();
 
-// ── Multer setup ─────────────────────────────────────────────────────────────
-const uploadDir = path.join(__dirname, '../uploads/products');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadDir),
-  filename:    (_req, file, cb) => {
-    const ext  = path.extname(file.originalname).toLowerCase();
-    const name = `product-${Date.now()}${ext}`;
-    cb(null, name);
-  }
+// ── Cloudinary config (reads from env vars) ───────────────────────────────────
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key:    process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
-  fileFilter: (_req, file, cb) => {
-    const allowed = /jpeg|jpg|png|webp|gif/;
-    const ok = allowed.test(path.extname(file.originalname).toLowerCase()) &&
-               allowed.test(file.mimetype.replace('image/', ''));
-    ok ? cb(null, true) : cb(new Error('Only image files are allowed'));
-  }
-});
+const useCloudinary = !!(
+  process.env.CLOUDINARY_CLOUD_NAME &&
+  process.env.CLOUDINARY_API_KEY &&
+  process.env.CLOUDINARY_API_SECRET
+);
+
+// ── Multer storage: Cloudinary in prod, local disk as fallback ────────────────
+let storage;
+let upload;
+
+if (useCloudinary) {
+  // Upload directly to Cloudinary — persistent, survives server restarts
+  storage = new CloudinaryStorage({
+    cloudinary,
+    params: {
+      folder:         'kapebara/products',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+      transformation: [{ width: 600, height: 600, crop: 'limit', quality: 'auto' }],
+    },
+  });
+  upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+} else {
+  // Fallback: local disk (works locally, but NOT on Render)
+  const uploadDir = path.join(__dirname, '../uploads/products');
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+  storage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadDir),
+    filename:    (_req, file, cb) => {
+      const ext  = path.extname(file.originalname).toLowerCase();
+      cb(null, `product-${Date.now()}${ext}`);
+    },
+  });
+  upload = multer({
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      const allowed = /jpeg|jpg|png|webp|gif/;
+      const ok = allowed.test(path.extname(file.originalname).toLowerCase()) &&
+                 allowed.test(file.mimetype.replace('image/', ''));
+      ok ? cb(null, true) : cb(new Error('Only image files are allowed'));
+    },
+  });
+}
 
 // POST /api/products/upload-image  — upload a product image
 router.post('/upload-image', upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  const imageUrl = `/uploads/products/${req.file.filename}`;
+
+  // Cloudinary gives req.file.path as the secure HTTPS URL
+  // Local disk gives req.file.filename
+  const imageUrl = useCloudinary
+    ? req.file.path          // e.g. https://res.cloudinary.com/...
+    : `/uploads/products/${req.file.filename}`;
+
   res.json({ image_url: imageUrl });
 });
 
