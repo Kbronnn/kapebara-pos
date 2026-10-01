@@ -139,7 +139,37 @@ router.get('/reports/sales', async (req, res) => {
       { $project: { category: '$_id', revenue: 1, qty: 1, _id: 0 } }
     ]);
 
-    res.json({ daily, topProducts, byCategory });
+    // Walk-in vs Portal breakdown (order counts)
+    const sourceCounts = await Order.aggregate([
+      { $match: { created_at: { $gte: since }, status: { $ne: 'cancelled' } } },
+      { $group: { _id: '$source', count: { $sum: 1 } } }
+    ]);
+    const sourceBreakdown = { pos: 0, portal: 0 };
+    sourceCounts.forEach(s => { if (s._id) sourceBreakdown[s._id] = s.count; });
+
+    // Per-product daily revenue breakdown (for multi-line chart — top 5 products)
+    const top5Names = topProducts.slice(0, 5).map(p => p.product_name);
+    const productDailyRaw = await Order.aggregate([
+      { $match: { created_at: { $gte: since }, status: { $ne: 'cancelled' }, 'items.product_name': { $in: top5Names } } },
+      { $unwind: '$items' },
+      { $match: { 'items.product_name': { $in: top5Names } } },
+      { $group: {
+          _id: {
+            product: '$items.product_name',
+            day: { $dateToString: { format: '%Y-%m-%d', date: '$created_at' } }
+          },
+          revenue: { $sum: '$items.subtotal' }
+      }}
+    ]);
+    // Shape into { productName: { 'YYYY-MM-DD': revenue } }
+    const productDailyBreakdown = {};
+    productDailyRaw.forEach(r => {
+      const { product, day } = r._id;
+      if (!productDailyBreakdown[product]) productDailyBreakdown[product] = {};
+      productDailyBreakdown[product][day] = r.revenue;
+    });
+
+    res.json({ daily, topProducts, byCategory, sourceBreakdown, productDailyBreakdown });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch sales report' });
   }
@@ -316,7 +346,8 @@ router.post('/', async (req, res) => {
   const {
     items, discount = 0, payment_method = 'Cash',
     notes = '', table_number = '', customer_id = null,
-    source = 'pos', customer_name = ''
+    source = 'pos', customer_name = '',
+    cashier_name = '', pos_number = '', register_number = '', device_number = ''
   } = req.body;
 
   if (!Array.isArray(items) || items.length === 0)
@@ -399,7 +430,8 @@ router.post('/', async (req, res) => {
       customer_name: finalCustName || '',
       customer_unique_id: finalCustUniqueId || '',
       source, status: orderStatus,
-      notes, items: resolvedItems
+      notes, items: resolvedItems,
+      cashier_name, pos_number, register_number, device_number
     });
 
     res.status(201).json({

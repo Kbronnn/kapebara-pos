@@ -2,6 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { API, toast, formatPHP, formatNum } from '../api';
 import { ProductThumb } from './Menu';
 
+// Static device/register info — in a real setup this could come from env or settings
+const DEVICE_NUMBER = 'DEV-001';
+const REGISTER_NUMBER = 'REG-01';
+const POS_NUMBER = 'POS-1';
+
 export default function POS() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,6 +17,10 @@ export default function POS() {
   const [customerId, setCustomerId] = useState('');
   const [customerPreview, setCustomerPreview] = useState({ text: '', type: '', data: null });
   const [lookingUp, setLookingUp] = useState(false);
+
+  // Cashier selector
+  const [staffAccounts, setStaffAccounts] = useState([]);
+  const [selectedCashier, setSelectedCashier] = useState('');
 
   // Customization modal states
   const [custModalOpen, setCustModalOpen] = useState(false);
@@ -46,10 +55,26 @@ export default function POS() {
   useEffect(() => {
     loadPOSData();
     loadPortalOrders();
+    loadStaffAccounts();
     // Poll every 10s for new portal orders
     const interval = setInterval(loadPortalOrders, 10000);
     return () => clearInterval(interval);
   }, [loadPortalOrders]);
+
+  // Pre-fill cashier from logged-in user
+  useEffect(() => {
+    const loggedIn = sessionStorage.getItem('adminUsername') || '';
+    if (loggedIn) setSelectedCashier(loggedIn);
+  }, []);
+
+  const loadStaffAccounts = async () => {
+    try {
+      const data = await API.get('/auth/accounts');
+      setStaffAccounts(data || []);
+    } catch {
+      // silently fail — not all roles can fetch accounts
+    }
+  };
 
   const loadPOSData = async () => {
     setLoading(true);
@@ -210,6 +235,7 @@ export default function POS() {
     setCheckingOut(true);
     const subtotal = cart.reduce((s, i) => s + (i.finalPrice || i.price) * i.qty, 0);
     const finalTotal = Math.max(0, subtotal - discount);
+    const cashierName = selectedCashier || sessionStorage.getItem('adminUsername') || 'Staff';
 
     try {
       const result = await API.post('/orders', {
@@ -221,6 +247,10 @@ export default function POS() {
         discount,
         payment_method: 'Cash',
         table_number: tableNumber,
+        cashier_name: cashierName,
+        pos_number: POS_NUMBER,
+        register_number: REGISTER_NUMBER,
+        device_number: DEVICE_NUMBER,
       });
 
       // Mark portal order as completed if checking out a loaded portal order
@@ -256,7 +286,11 @@ export default function POS() {
         discount,
         total: finalTotal,
         tableNum: tableNumber,
-        pointsInfo: ptsMsg
+        pointsInfo: ptsMsg,
+        cashierName,
+        posNumber: POS_NUMBER,
+        registerNumber: REGISTER_NUMBER,
+        deviceNumber: DEVICE_NUMBER,
       });
 
       setReceiptModalOpen(true);
@@ -571,6 +605,42 @@ export default function POS() {
               </div>
             </div>
 
+            {/* Cashier Selector */}
+            <div className="pos-meta-row" style={{ marginTop: '8px' }}>
+              <div className="pos-meta-group" style={{ flex: 1 }}>
+                <label className="pos-meta-label">👤 Cashier</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                  {staffAccounts.length > 0 ? (
+                    <select
+                      id="cashier-select"
+                      className="pos-meta-input"
+                      value={selectedCashier}
+                      onChange={(e) => setSelectedCashier(e.target.value)}
+                      style={{ flex: 1, fontWeight: 600, fontSize: '0.88rem' }}
+                    >
+                      <option value="">— Select Cashier —</option>
+                      {staffAccounts.map(acc => (
+                        <option key={acc.id} value={acc.username}>{acc.username} ({acc.role})</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      id="cashier-input"
+                      className="pos-meta-input"
+                      placeholder="Cashier name"
+                      value={selectedCashier}
+                      onChange={(e) => setSelectedCashier(e.target.value)}
+                      style={{ flex: 1, fontWeight: 600, fontSize: '0.88rem' }}
+                    />
+                  )}
+                </div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-light)', marginTop: '2px' }}>
+                  📟 {POS_NUMBER} · 🖥️ {REGISTER_NUMBER} · 📱 {DEVICE_NUMBER}
+                </div>
+              </div>
+            </div>
+
             {/* Customer Loyalty ID */}
             <div className="pos-loyalty-row">
               <label className="pos-meta-label">
@@ -740,6 +810,14 @@ export default function POS() {
                     </div>
                   )}
                   <div className="receipt-sub">{new Date().toLocaleString('en-PH')}</div>
+                </div>
+
+                {/* POS / Register / Device / Cashier info */}
+                <div style={{ background: 'rgba(74,44,10,0.06)', borderRadius: '8px', padding: '8px 12px', margin: '8px 0', fontSize: '0.74rem', color: 'var(--espresso)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px' }}>
+                  <div><span style={{ opacity: 0.6 }}>POS:</span> <strong>{receiptData.posNumber}</strong></div>
+                  <div><span style={{ opacity: 0.6 }}>Register:</span> <strong>{receiptData.registerNumber}</strong></div>
+                  <div><span style={{ opacity: 0.6 }}>Device:</span> <strong>{receiptData.deviceNumber}</strong></div>
+                  <div><span style={{ opacity: 0.6 }}>Cashier:</span> <strong>{receiptData.cashierName}</strong></div>
                 </div>
                 <div className="receipt-items">
                   {receiptData.items.map((i, index) => (

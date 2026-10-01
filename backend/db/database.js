@@ -26,6 +26,7 @@ const ingredientSchema = new mongoose.Schema({
   min_stock:          { type: Number, default: 0 },
   last_restocked_at:  { type: Date,   default: null },
   last_restocked_by:  { type: String, default: null },
+  expiration_date:    { type: Date,   default: null },   // for forecasting
   created_at:         { type: Date,   default: Date.now }
 }, jsonOpts);
 
@@ -68,6 +69,11 @@ const orderSchema = new mongoose.Schema({
   source:             { type: String, default: 'pos' },   // 'pos' | 'portal'
   status:             { type: String, default: 'pending' },   // 'completed' | 'pending' | 'processing'
   notes:              { type: String, default: '' },
+  // POS metadata
+  cashier_name:       { type: String, default: '' },
+  pos_number:         { type: String, default: '' },
+  register_number:    { type: String, default: '' },
+  device_number:      { type: String, default: '' },
   items:              [orderItemSchema],
   created_at:         { type: Date, default: Date.now }
 }, jsonOpts);

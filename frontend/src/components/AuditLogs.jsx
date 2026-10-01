@@ -24,6 +24,9 @@ export default function AuditLogs() {
   const [addAccOpen, setAddAccOpen] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [newConfirmPassword, setNewConfirmPassword] = useState('');
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [newRole, setNewRole] = useState('staff');
   const [creating, setCreating] = useState(false);
 
@@ -52,12 +55,13 @@ export default function AuditLogs() {
     e.preventDefault();
     if (!newUsername.trim() || !newPassword) { toast('Username and password are required', 'error'); return; }
     if (newPassword.length < 6) { toast('Password must be at least 6 characters', 'error'); return; }
+    if (newPassword !== newConfirmPassword) { toast('Passwords do not match', 'error'); return; }
     setCreating(true);
     try {
       await API.post('/auth/accounts', { username: newUsername.trim(), password: newPassword, role: newRole });
       toast(`Account "${newUsername.trim()}" created!`, 'success');
       setAddAccOpen(false);
-      setNewUsername(''); setNewPassword(''); setNewRole('staff');
+      setNewUsername(''); setNewPassword(''); setNewConfirmPassword(''); setNewRole('staff');
       loadData();
     } catch (err) { toast(err.message, 'error'); }
     finally { setCreating(false); }
@@ -213,7 +217,43 @@ export default function AuditLogs() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Password</label>
-                  <input className="form-control" type="password" placeholder="Min. 6 characters" required value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input className="form-control" type={showNewPass ? 'text' : 'password'}
+                      placeholder="Min. 6 characters" required value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      style={{ paddingRight: '42px', width: '100%' }}
+                    />
+                    <button type="button" onClick={() => setShowNewPass(!showNewPass)}
+                      style={{ position: 'absolute', right: '10px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: '#888' }}>
+                      {showNewPass ? '👁️' : '👁️‍🗨️'}
+                    </button>
+                  </div>
+                  {newPassword && (
+                    <div style={{ marginTop: '4px', fontSize: '0.72rem', color: newPassword.length < 6 ? '#c0392b' : newPassword.length < 10 ? '#b87c00' : '#2d7a4f', fontWeight: 600 }}>
+                      {newPassword.length < 6 ? '⚠️ Too short (min 6 chars)' : newPassword.length < 10 ? '🟡 Moderate strength' : '✅ Strong password'}
+                    </div>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Confirm Password</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input className="form-control" type={showConfirmPass ? 'text' : 'password'}
+                      placeholder="Re-enter password" required value={newConfirmPassword}
+                      onChange={e => setNewConfirmPassword(e.target.value)}
+                      style={{ paddingRight: '42px', width: '100%',
+                        borderColor: newConfirmPassword && newConfirmPassword !== newPassword ? '#c0392b' : newConfirmPassword && newConfirmPassword === newPassword ? '#2d7a4f' : undefined }}
+                    />
+                    <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)}
+                      style={{ position: 'absolute', right: '10px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: '#888' }}>
+                      {showConfirmPass ? '👁️' : '👁️‍🗨️'}
+                    </button>
+                  </div>
+                  {newConfirmPassword && (
+                    <div style={{ marginTop: '4px', fontSize: '0.72rem', fontWeight: 600,
+                      color: newConfirmPassword === newPassword ? '#2d7a4f' : '#c0392b' }}>
+                      {newConfirmPassword === newPassword ? '✅ Passwords match' : '❌ Passwords do not match'}
+                    </div>
+                  )}
                 </div>
                 <div className="form-group">
                   <label className="form-label">Role</label>

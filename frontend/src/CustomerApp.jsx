@@ -953,8 +953,9 @@ export default function CustomerApp() {
   const [hostSubmitting, setHostSubmitting] = useState(false);
 
   // Account settings
-  const [settForm, setSettForm] = useState({ name: '', email: '', phone: '', birthdate: '', password: '' });
+  const [settForm, setSettForm] = useState({ name: '', email: '', phone: '', birthdate: '', password: '', confirmPassword: '' });
   const [showSettPass, setShowSettPass] = useState(false);
+  const [showSettConfirmPass, setShowSettConfirmPass] = useState(false);
   const [settMsg, setSettMsg] = useState('');
   const [settLoading, setSettLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
@@ -1133,7 +1134,7 @@ export default function CustomerApp() {
       if (!res.ok) return;
       const data = await res.json();
       setCustomer(data);
-      setSettForm({ name: data.name || '', email: data.email || '', phone: data.phone || '', birthdate: data.birthdate || '', password: '' });
+      setSettForm({ name: data.name || '', email: data.email || '', phone: data.phone || '', birthdate: data.birthdate || '', password: '', confirmPassword: '' });
       if (data.avatar_url) setAvatarPreview(data.avatar_url);
     } catch {}
   };
@@ -1293,6 +1294,20 @@ export default function CustomerApp() {
   const handleAccountUpdate = async (e) => {
     e.preventDefault();
     setSettLoading(true); setSettMsg('');
+
+    if (settForm.password) {
+      if (settForm.password.length < 6) {
+        setSettMsg('Password must be at least 6 characters');
+        setSettLoading(false);
+        return;
+      }
+      if (settForm.password !== settForm.confirmPassword) {
+        setSettMsg('Passwords do not match. Please verify your new password.');
+        setSettLoading(false);
+        return;
+      }
+    }
+
     try {
       const formData = new FormData();
       if (settForm.name)      formData.append('name', settForm.name);
@@ -1311,7 +1326,7 @@ export default function CustomerApp() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Update failed');
       setSettMsg('Account details updated successfully!');
-      if (settForm.password) setSettForm(f => ({ ...f, password: '' }));
+      if (settForm.password) setSettForm(f => ({ ...f, password: '', confirmPassword: '' }));
       loadCustomerInfo();
     } catch (err) { setSettMsg(err.message); }
     finally { setSettLoading(false); }
@@ -2243,6 +2258,7 @@ export default function CustomerApp() {
                         <input
                           type={showSettPass ? 'text' : 'password'}
                           id="settings-password"
+                          placeholder="Min. 6 characters"
                           value={settForm.password}
                           onChange={e => setSettForm(f => ({ ...f, password: e.target.value }))}
                           style={{ paddingRight: '44px', width: '100%' }}
@@ -2270,6 +2286,50 @@ export default function CustomerApp() {
                         </button>
                       </div>
                     </div>
+                    {settForm.password && (
+                      <div className="form-group">
+                        <label>Confirm New Password</label>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type={showSettConfirmPass ? 'text' : 'password'}
+                            id="settings-confirm-password"
+                            placeholder="Re-enter new password"
+                            value={settForm.confirmPassword}
+                            onChange={e => setSettForm(f => ({ ...f, confirmPassword: e.target.value }))}
+                            style={{
+                              paddingRight: '44px', width: '100%',
+                              borderColor: settForm.confirmPassword && settForm.confirmPassword !== settForm.password ? '#c0392b' : settForm.confirmPassword && settForm.confirmPassword === settForm.password ? '#2d7a4f' : undefined
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowSettConfirmPass(!showSettConfirmPass)}
+                            style={{
+                              position: 'absolute',
+                              right: '10px',
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontSize: '1.15rem',
+                              padding: '4px 6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#666',
+                              zIndex: 2
+                            }}
+                            title={showSettConfirmPass ? 'Hide password' : 'Show password'}
+                          >
+                            {showSettConfirmPass ? '👁️' : '👁️‍🗨️'}
+                          </button>
+                        </div>
+                        {settForm.confirmPassword && (
+                          <div style={{ marginTop: '4px', fontSize: '0.78rem', fontWeight: 600, color: settForm.confirmPassword === settForm.password ? '#2d7a4f' : '#c0392b' }}>
+                            {settForm.confirmPassword === settForm.password ? '✅ Passwords match' : '❌ Passwords do not match'}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <button type="submit" disabled={settLoading}>{settLoading ? 'Updating…' : 'Update Account Details'}</button>
                     {settMsg && <div id="settings-message" style={{ fontWeight: 500, color: settMsg.includes('success') ? 'var(--success)' : 'red' }}>{settMsg}</div>}
                   </form>

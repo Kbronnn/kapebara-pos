@@ -42,11 +42,12 @@ router.get('/alerts', async (req, res) => {
 
 // PUT update ingredient
 router.put('/:id', async (req, res) => {
-  const { current_stock, min_stock, name } = req.body;
+  const { current_stock, min_stock, name, expiration_date } = req.body;
   const updates = {};
   if (current_stock !== undefined) updates.current_stock = current_stock;
   if (min_stock     !== undefined) updates.min_stock     = min_stock;
   if (name          !== undefined) updates.name          = name;
+  if (expiration_date !== undefined) updates.expiration_date = expiration_date ? new Date(expiration_date) : null;
 
   if (Object.keys(updates).length === 0)
     return res.status(400).json({ error: 'Nothing to update' });

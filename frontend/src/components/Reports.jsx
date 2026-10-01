@@ -5,15 +5,29 @@ import Chart from 'chart.js/auto';
 const PERIODS = ['7d', '30d', '90d'];
 const PERIOD_LABELS = { '7d': 'Last 7 Days', '30d': 'Last 30 Days', '90d': 'Last 90 Days' };
 
+// Palette for multi-line product chart
+const PRODUCT_COLORS = [
+  { border: '#4a2c0a', bg: 'rgba(74,44,10,0.12)' },
+  { border: '#c0392b', bg: 'rgba(192,57,43,0.12)' },
+  { border: '#2980b9', bg: 'rgba(41,128,185,0.12)' },
+  { border: '#27ae60', bg: 'rgba(39,174,96,0.12)' },
+  { border: '#8e44ad', bg: 'rgba(142,68,173,0.12)' },
+];
+
 export default function Reports() {
   const [period, setPeriod] = useState('7d');
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState(null);
+  const [compareMode, setCompareMode] = useState('daily'); // 'daily' | 'weekly'
 
   const revChartRef = useRef(null);
   const catChartRef = useRef(null);
+  const sourceChartRef = useRef(null);
+  const productLineChartRef = useRef(null);
   const revChartInst = useRef(null);
   const catChartInst = useRef(null);
+  const sourceChartInst = useRef(null);
+  const productLineChartInst = useRef(null);
 
   useEffect(() => {
     loadReports();
@@ -33,12 +47,15 @@ export default function Reports() {
 
   useEffect(() => {
     if (!reportData || loading) return;
-    const { daily, byCategory } = reportData;
+    const { daily, byCategory, topProducts, sourceBreakdown } = reportData;
     const catColors = ['#4a2c0a', '#8b5e3c', '#f1d6ab', '#e0bc88', '#2d7a4f', '#b87c00'];
 
-    if (revChartInst.current) revChartInst.current.destroy();
-    if (catChartInst.current) catChartInst.current.destroy();
+    // Destroy all existing charts
+    [revChartInst, catChartInst, sourceChartInst, productLineChartInst].forEach(r => {
+      if (r.current) { r.current.destroy(); r.current = null; }
+    });
 
+    // 1. Daily Revenue Bar Chart
     if (revChartRef.current) {
       revChartInst.current = new Chart(revChartRef.current, {
         type: 'bar',
@@ -50,6 +67,7 @@ export default function Reports() {
       });
     }
 
+    // 2. Sales by Category Doughnut
     if (catChartRef.current) {
       catChartInst.current = new Chart(catChartRef.current, {
         type: 'doughnut',
@@ -61,11 +79,117 @@ export default function Reports() {
       });
     }
 
+    // 3. Walk-in vs Portal Pie Chart
+    const posCount    = (sourceBreakdown && sourceBreakdown.pos)    || 0;
+    const portalCount = (sourceBreakdown && sourceBreakdown.portal) || 0;
+    if (sourceChartRef.current && (posCount + portalCount) > 0) {
+      sourceChartInst.current = new Chart(sourceChartRef.current, {
+        type: 'pie',
+        data: {
+          labels: ['Walk-in (POS)', 'Portal Orders'],
+          datasets: [{
+            data: [posCount, portalCount],
+            backgroundColor: ['#4a2c0a', '#8e44ad'],
+            borderColor: ['#fff', '#fff'],
+            borderWidth: 3
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { padding: 14, font: { size: 12 }, usePointStyle: true } },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const total = posCount + portalCount;
+                  const pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
+                  return ` ${ctx.label}: ${ctx.parsed} (${pct}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 4. Multi-colored Line Graph — Revenue by Top-5 Products (Daily or Weekly comparison)
+    const top5 = (topProducts || []).slice(0, 5);
+    const allDays = daily.map(d => d.day);
+    if (productLineChartRef.current && top5.length > 0) {
+      const breakdown = reportData.productDailyBreakdown || {};
+
+      let chartLabels = [];
+      let getProductRevenue = null;
+
+      if (compareMode === 'weekly') {
+        // Group available days into 7-day weekly cohorts for LSTM trend comparison
+        const weekBuckets = [];
+        allDays.forEach((day, idx) => {
+          const bucketIndex = Math.floor(idx / 7);
+          if (!weekBuckets[bucketIndex]) {
+            weekBuckets[bucketIndex] = {
+              label: `Wk ${bucketIndex + 1} (${day.slice(5)})`,
+              days: []
+            };
+          }
+          weekBuckets[bucketIndex].days.push(day);
+        });
+
+        chartLabels = weekBuckets.map(b => b.label);
+        getProductRevenue = (prodName) => {
+          const pMap = breakdown[prodName] || {};
+          return weekBuckets.map(bucket => bucket.days.reduce((acc, d) => acc + (pMap[d] || 0), 0));
+        };
+      } else {
+        chartLabels = allDays.map(d => d.slice(5));
+        getProductRevenue = (prodName) => {
+          const pMap = breakdown[prodName] || {};
+          return allDays.map(day => pMap[day] || 0);
+        };
+      }
+
+      productLineChartInst.current = new Chart(productLineChartRef.current, {
+        type: 'line',
+        data: {
+          labels: chartLabels,
+          datasets: top5.map((prod, idx) => {
+            const col = PRODUCT_COLORS[idx % PRODUCT_COLORS.length];
+            return {
+              label: prod.product_name,
+              data: getProductRevenue(prod.product_name),
+              borderColor: col.border,
+              backgroundColor: col.bg,
+              fill: false,
+              tension: 0.35,
+              pointRadius: 4.5,
+              pointHoverRadius: 7,
+              pointBackgroundColor: col.border,
+              borderWidth: 2.5,
+            };
+          })
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'top', labels: { padding: 12, font: { size: 11 }, usePointStyle: true } },
+            tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${formatPHP(ctx.parsed.y)}` } }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: { grid: { color: '#f0e8da' }, ticks: { font: { size: 11 }, callback: v => '₱' + v.toLocaleString() } }
+          }
+        }
+      });
+    }
+
     return () => {
-      if (revChartInst.current) revChartInst.current.destroy();
-      if (catChartInst.current) catChartInst.current.destroy();
+      [revChartInst, catChartInst, sourceChartInst, productLineChartInst].forEach(r => {
+        if (r.current) { r.current.destroy(); r.current = null; }
+      });
     };
-  }, [reportData, loading]);
+  }, [reportData, loading, compareMode]);
 
   const handleExportCSV = () => {
     if (!reportData) { toast('No data to export', 'warning'); return; }
@@ -190,7 +314,7 @@ export default function Reports() {
             </div>
           </div>
 
-          {/* Charts */}
+          {/* Charts — Row 1: Daily Revenue + Category */}
           <div className="charts-grid" style={{ marginBottom: '20px' }}>
             <div className="card">
               <div className="card-title">Daily Revenue</div>
@@ -203,6 +327,52 @@ export default function Reports() {
               <div className="chart-container" style={{ height: '220px' }}>
                 <canvas ref={catChartRef}></canvas>
               </div>
+            </div>
+          </div>
+
+          {/* Charts — Row 2: Multi-line Product Revenue + Walk-in vs Portal */}
+          <div className="charts-grid" style={{ marginBottom: '20px' }}>
+            <div className="card" style={{ gridColumn: 'span 1' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <div className="card-title" style={{ margin: 0 }}>
+                  📈 {compareMode === 'weekly' ? 'Weekly' : 'Daily'} Revenue by Top Products
+                </div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {['daily', 'weekly'].map(m => (
+                    <button key={m} onClick={() => setCompareMode(m)}
+                      style={{ padding: '4px 12px', borderRadius: '8px', border: '1.5px solid var(--border)',
+                        background: compareMode === m ? 'var(--espresso)' : '#fff',
+                        color: compareMode === m ? 'var(--cream)' : 'var(--espresso)',
+                        fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer' }}>
+                      {m.charAt(0).toUpperCase() + m.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="chart-container" style={{ height: '240px' }}>
+                <canvas ref={productLineChartRef}></canvas>
+              </div>
+              <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', marginTop: '6px', textAlign: 'center' }}>
+                Multi-colored lines represent the top 5 best-selling products — useful for LSTM forecasting focus areas
+              </div>
+            </div>
+            <div className="card">
+              <div className="card-title">🥧 Walk-in vs Portal Orders</div>
+              <div className="chart-container" style={{ height: '220px' }}>
+                <canvas ref={sourceChartRef}></canvas>
+              </div>
+              {reportData.sourceBreakdown && (
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '10px', fontSize: '0.8rem' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#4a2c0a' }}>{reportData.sourceBreakdown.pos || 0}</div>
+                    <div style={{ color: 'var(--text-muted)' }}>Walk-in</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#8e44ad' }}>{reportData.sourceBreakdown.portal || 0}</div>
+                    <div style={{ color: 'var(--text-muted)' }}>Portal</div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
