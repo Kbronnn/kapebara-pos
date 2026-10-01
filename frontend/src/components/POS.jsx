@@ -347,10 +347,10 @@ export default function POS() {
         <div class="info-row"><span>Source</span><span>Walk-in POS</span></div>
         <div class="info-row"><span>Payment</span><span>Cash</span></div>
         ${receiptData.tableNum ? `<div class="info-row"><span>Table</span><span>${receiptData.tableNum}</span></div>` : ''}
-        <div class="info-row"><span>POS #</span><span>${receiptData.posNumber || 'POS-1'}</span></div>
-        <div class="info-row"><span>Register #</span><span>${receiptData.registerNumber || 'REG-01'}</span></div>
-        <div class="info-row"><span>Device #</span><span>${receiptData.deviceNumber || 'DEV-001'}</span></div>
-        <div class="info-row"><span>Cashier</span><span>${receiptData.cashierName || 'Staff'}</span></div>
+        <div class="info-row"><span>POS Number</span><span>${receiptData.posNumber || 'POS-1'}</span></div>
+        <div class="info-row"><span>Register Number</span><span>${receiptData.registerNumber || 'REG-01'}</span></div>
+        <div class="info-row"><span>Device Identifier</span><span>${receiptData.deviceNumber || 'DEV-001'}</span></div>
+        <div class="info-row"><span>Cashier / Staff</span><span>${receiptData.cashierName || 'Staff'}</span></div>
         <hr class="divider"/>
         <div class="items-header">ITEMS</div>
         ${(receiptData.items || []).map(item => {
@@ -895,10 +895,10 @@ export default function POS() {
 
                 {/* POS / Register / Device / Cashier info */}
                 <div style={{ background: 'rgba(74,44,10,0.06)', borderRadius: '8px', padding: '8px 12px', margin: '8px 0', fontSize: '0.74rem', color: 'var(--espresso)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px' }}>
-                  <div><span style={{ opacity: 0.6 }}>POS:</span> <strong>{receiptData.posNumber}</strong></div>
-                  <div><span style={{ opacity: 0.6 }}>Register:</span> <strong>{receiptData.registerNumber}</strong></div>
-                  <div><span style={{ opacity: 0.6 }}>Device:</span> <strong>{receiptData.deviceNumber}</strong></div>
-                  <div><span style={{ opacity: 0.6 }}>Cashier:</span> <strong>{receiptData.cashierName}</strong></div>
+                  <div><span style={{ opacity: 0.6 }}>POS Number:</span> <strong>{receiptData.posNumber || 'POS-1'}</strong></div>
+                  <div><span style={{ opacity: 0.6 }}>Register Number:</span> <strong>{receiptData.registerNumber || 'REG-01'}</strong></div>
+                  <div><span style={{ opacity: 0.6 }}>Device Identifier:</span> <strong>{receiptData.deviceNumber || 'DEV-001'}</strong></div>
+                  <div><span style={{ opacity: 0.6 }}>Cashier / Staff:</span> <strong>{receiptData.cashierName || 'Staff'}</strong></div>
                 </div>
                 <div className="receipt-items">
                   {receiptData.items.map((i, index) => (

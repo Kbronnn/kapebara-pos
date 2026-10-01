@@ -80,7 +80,7 @@ export default function Reports() {
     }
 
     // 3. Walk-in vs Portal Pie Chart
-    const posCount    = (sourceBreakdown && sourceBreakdown.pos)    || 0;
+    const posCount = (sourceBreakdown && sourceBreakdown.pos) || 0;
     const portalCount = (sourceBreakdown && sourceBreakdown.portal) || 0;
     if (sourceChartRef.current && (posCount + portalCount) > 0) {
       sourceChartInst.current = new Chart(sourceChartRef.current, {
@@ -89,7 +89,7 @@ export default function Reports() {
           labels: ['Walk-in (POS)', 'Portal Orders'],
           datasets: [{
             data: [posCount, portalCount],
-            backgroundColor: ['#4a2c0a', '#8e44ad'],
+            backgroundColor: ['#4a2c0a', '#d351aeff'],
             borderColor: ['#fff', '#fff'],
             borderWidth: 3
           }]
@@ -209,9 +209,9 @@ export default function Reports() {
     byCategory.forEach(c => { csv += `${c.category || 'Uncategorized'},${c.revenue.toFixed(2)},${c.qty}\n`; });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href     = url;
+    link.href = url;
     link.download = `KapeBara_Report_${pLabel}_${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
@@ -340,10 +340,12 @@ export default function Reports() {
                 <div style={{ display: 'flex', gap: '6px' }}>
                   {['daily', 'weekly'].map(m => (
                     <button key={m} onClick={() => setCompareMode(m)}
-                      style={{ padding: '4px 12px', borderRadius: '8px', border: '1.5px solid var(--border)',
+                      style={{
+                        padding: '4px 12px', borderRadius: '8px', border: '1.5px solid var(--border)',
                         background: compareMode === m ? 'var(--espresso)' : '#fff',
                         color: compareMode === m ? 'var(--cream)' : 'var(--espresso)',
-                        fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer' }}>
+                        fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer'
+                      }}>
                       {m.charAt(0).toUpperCase() + m.slice(1)}
                     </button>
                   ))}
