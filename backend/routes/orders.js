@@ -345,6 +345,7 @@ router.patch('/:id/status', async (req, res) => {
 router.post('/', async (req, res) => {
   const {
     items, discount = 0, payment_method = 'Cash',
+    payment_ref = '', reference_number = '',
     notes = '', table_number = '', customer_id = null,
     source = 'pos', customer_name = '',
     cashier_name = '', pos_number = '', register_number = '', device_number = ''
@@ -423,9 +424,12 @@ router.post('/', async (req, res) => {
     const orderStatus = req.body.status || 'pending';
     const order_number = await nextOrderNumber();
 
+    const refNum = (payment_ref || reference_number || '').trim();
     const order = await Order.create({
       order_number,
       subtotal, discount, total, payment_method, table_number,
+      payment_ref: refNum,
+      reference_number: refNum,
       customer_id: customer_id || null,
       customer_name: finalCustName || '',
       customer_unique_id: finalCustUniqueId || '',

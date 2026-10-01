@@ -62,6 +62,8 @@ const orderSchema = new mongoose.Schema({
   discount:           { type: Number, default: 0 },
   total:              { type: Number, required: true },
   payment_method:     { type: String, default: 'Cash' },
+  payment_ref:        { type: String, default: '' },
+  reference_number:   { type: String, default: '' },
   table_number:       { type: String, default: '' },
   customer_id:        { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', default: null },
   customer_name:      { type: String, default: '' },

@@ -101,7 +101,8 @@ function ReceiptModal({ order, onClose }) {
         <div class="info-row"><span>Status</span><span>${statusInfo.label}</span></div>
         ${order.customer_name ? `<div class="info-row"><span>Customer</span><span>${order.customer_name}</span></div>` : ''}
         ${order.table_number  ? `<div class="info-row"><span>Table</span><span>${order.table_number}</span></div>` : ''}
-        ${order.payment_method ? `<div class="info-row"><span>Payment</span><span>${order.payment_method}</span></div>` : ''}
+        <div class="info-row"><span>Payment</span><span>${order.payment_method || 'Cash'}</span></div>
+        ${(order.payment_ref || order.reference_number) ? `<div class="info-row"><span>Reference #</span><span>${order.payment_ref || order.reference_number}</span></div>` : ''}
         <div class="info-row"><span>POS Number</span><span>${posNum}</span></div>
         <div class="info-row"><span>Register Number</span><span>${regNum}</span></div>
         <div class="info-row"><span>Device Identifier</span><span>${devNum}</span></div>
@@ -178,7 +179,21 @@ function ReceiptModal({ order, onClose }) {
           }}>
             {[
               ['📅 Date', formatDateTime(order.created_at)],
-              ['💳 Payment', order.payment_method || '—'],
+              ['💳 Payment', (
+                <div>
+                  <span>
+                    {order.payment_method === 'Cash' ? '💵 Cash' :
+                     order.payment_method === 'GCash' ? '📱 GCash' :
+                     order.payment_method === 'Bank' ? '🏦 Bank Transfer' :
+                     order.payment_method || '—'}
+                  </span>
+                  {(order.payment_ref || order.reference_number) && (
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: '2px' }}>
+                      Ref: {order.payment_ref || order.reference_number}
+                    </div>
+                  )}
+                </div>
+              )],
               ['📍 Source', <Badge style={{ background: SOURCE_BADGE[order.source]?.bg || '#eee', color: SOURCE_BADGE[order.source]?.color || '#333' }}>{SOURCE_BADGE[order.source]?.label || order.source}</Badge>],
               ['🔖 Status', <Badge style={{ background: statusInfo.bg, color: statusInfo.color }}>{statusInfo.label}</Badge>],
               ['📟 POS Number', posNum],

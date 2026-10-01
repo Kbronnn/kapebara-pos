@@ -22,6 +22,10 @@ export default function POS() {
   const [staffAccounts, setStaffAccounts] = useState([]);
   const [selectedCashier, setSelectedCashier] = useState('');
 
+  // Payment method & reference
+  const [paymentMethod, setPaymentMethod] = useState('Cash'); // 'Cash' | 'GCash' | 'Bank'
+  const [paymentRef, setPaymentRef] = useState('');
+
   // Customization modal states
   const [custModalOpen, setCustModalOpen] = useState(false);
   const [customizingProduct, setCustomizingProduct] = useState(null);
@@ -228,14 +232,24 @@ export default function POS() {
   const handleClearCart = () => {
     setCart([]);
     setActivePortalOrderId(null);
+    setPaymentMethod('Cash');
+    setPaymentRef('');
   };
 
   const handleCheckout = async () => {
     if (cart.length === 0 || checkingOut) return;
+
+    // Validate reference number for GCash or Bank
+    if ((paymentMethod === 'GCash' || paymentMethod === 'Bank') && !paymentRef.trim()) {
+      toast(`Please enter the ${paymentMethod} reference number`, 'warning');
+      return;
+    }
+
     setCheckingOut(true);
     const subtotal = cart.reduce((s, i) => s + (i.finalPrice || i.price) * i.qty, 0);
     const finalTotal = Math.max(0, subtotal - discount);
     const cashierName = selectedCashier || sessionStorage.getItem('adminUsername') || 'Staff';
+    const refNumber = paymentRef.trim();
 
     try {
       const result = await API.post('/orders', {
@@ -245,7 +259,9 @@ export default function POS() {
           customizations: i.customizations
         })),
         discount,
-        payment_method: 'Cash',
+        payment_method: paymentMethod,
+        payment_ref: refNumber,
+        reference_number: refNumber,
         table_number: tableNumber,
         cashier_name: cashierName,
         pos_number: POS_NUMBER,
@@ -285,6 +301,8 @@ export default function POS() {
         subtotal,
         discount,
         total: finalTotal,
+        paymentMethod,
+        paymentRef: refNumber,
         tableNum: tableNumber,
         pointsInfo: ptsMsg,
         cashierName,
@@ -301,6 +319,8 @@ export default function POS() {
       setTableNumber('');
       setCustomerId('');
       setDiscount(0);
+      setPaymentMethod('Cash');
+      setPaymentRef('');
       setCustomerPreview({ text: '', type: '', data: null });
     } catch (err) {
       toast(err.message, 'error');
@@ -345,7 +365,8 @@ export default function POS() {
         <div class="info-row"><span>Order #</span><span>${receiptData.order_number || '—'}</span></div>
         <div class="info-row"><span>Date</span><span>${new Date().toLocaleString('en-PH')}</span></div>
         <div class="info-row"><span>Source</span><span>Walk-in POS</span></div>
-        <div class="info-row"><span>Payment</span><span>Cash</span></div>
+        <div class="info-row"><span>Payment</span><span>${receiptData.paymentMethod || 'Cash'}</span></div>
+        ${receiptData.paymentRef ? `<div class="info-row"><span>Reference #</span><span>${receiptData.paymentRef}</span></div>` : ''}
         ${receiptData.tableNum ? `<div class="info-row"><span>Table</span><span>${receiptData.tableNum}</span></div>` : ''}
         <div class="info-row"><span>POS Number</span><span>${receiptData.posNumber || 'POS-1'}</span></div>
         <div class="info-row"><span>Register Number</span><span>${receiptData.registerNumber || 'REG-01'}</span></div>
@@ -679,12 +700,55 @@ export default function POS() {
                 />
               </div>
               <div className="pos-meta-group" style={{ flex: 1, marginLeft: '10px' }}>
-                <label className="pos-meta-label">💳 Payment</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                  <span className="pay-btn active" style={{ cursor: 'default', padding: '6px 14px' }}>💵 Cash</span>
+                <label className="pos-meta-label">💳 Payment Method</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '4px', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'Cash', label: '💵 Cash' },
+                    { id: 'GCash', label: '📱 GCash' },
+                    { id: 'Bank', label: '🏦 Bank' }
+                  ].map(m => (
+                    <button
+                      type="button"
+                      key={m.id}
+                      onClick={() => setPaymentMethod(m.id)}
+                      style={{
+                        padding: '5px 9px',
+                        borderRadius: '8px',
+                        border: '1.5px solid var(--border)',
+                        background: paymentMethod === m.id ? 'var(--espresso)' : '#fff',
+                        color: paymentMethod === m.id ? 'var(--cream)' : 'var(--espresso)',
+                        fontWeight: 700,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
+
+            {/* Reference Number for GCash / Bank */}
+            {(paymentMethod === 'GCash' || paymentMethod === 'Bank') && (
+              <div className="pos-meta-row" style={{ marginTop: '8px', background: 'rgba(74,44,10,0.05)', border: '1.5px solid var(--tan-dark)', borderRadius: '10px', padding: '10px 12px' }}>
+                <div style={{ flex: 1 }}>
+                  <label className="pos-meta-label" style={{ color: 'var(--espresso)', fontWeight: 700 }}>
+                    {paymentMethod === 'GCash' ? '📱 GCash Reference #' : '🏦 Bank Transfer Reference #'} <span style={{ color: '#c0392b' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="pos-meta-input"
+                    placeholder={paymentMethod === 'GCash' ? 'e.g. 1002 9384 1928' : 'e.g. REF-83920193'}
+                    value={paymentRef}
+                    onChange={(e) => setPaymentRef(e.target.value)}
+                    style={{ width: '100%', marginTop: '4px', fontWeight: 600, fontSize: '0.88rem' }}
+                    autoFocus
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Cashier Selector */}
             <div className="pos-meta-row" style={{ marginTop: '8px' }}>
@@ -924,8 +988,19 @@ export default function POS() {
                 {receiptData.discount > 0 && (
                   <div className="receipt-total-row"><span>Discount</span><span>−{formatPHP(receiptData.discount)}</span></div>
                 )}
-                <div className="receipt-total-row final"><span>TOTAL</span><span>{formatPHP(receiptData.total)}</span></div>
-                <div className="receipt-total-row"><span>Payment</span><span>💵 Cash</span></div>
+                <div className="receipt-total-row">
+                  <span>Payment</span>
+                  <span>
+                    {receiptData.paymentMethod === 'GCash' ? '📱 GCash' :
+                     receiptData.paymentMethod === 'Bank' ? '🏦 Bank Transfer' : '💵 Cash'}
+                  </span>
+                </div>
+                {receiptData.paymentRef && (
+                  <div className="receipt-total-row" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    <span>Reference #</span>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{receiptData.paymentRef}</span>
+                  </div>
+                )}
                 {receiptData.pointsInfo && (
                   <div className="receipt-points">
                     🏆 +{receiptData.pointsInfo.pointsEarned} pts awarded to <strong>{receiptData.pointsInfo.customerName}</strong> ({receiptData.pointsInfo.newTotal} total)
