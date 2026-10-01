@@ -58,6 +58,10 @@ function ReceiptModal({ order, onClose }) {
 
   const statusInfo  = STATUS_BADGE[order.status]  || STATUS_BADGE.completed;
   const sourceInfo  = SOURCE_BADGE[order.source]   || SOURCE_BADGE.pos;
+  const posNum      = order.pos_number || (order.source === 'pos' ? 'POS-1' : '');
+  const regNum      = order.register_number || (order.source === 'pos' ? 'REG-01' : '');
+  const devNum      = order.device_number || (order.source === 'pos' ? 'DEV-001' : '');
+  const cashier     = order.cashier_name || (order.source === 'pos' ? 'Staff' : '');
 
   const handlePrint = () => {
     const win = window.open('', '_blank', 'width=400,height=700');
@@ -98,6 +102,10 @@ function ReceiptModal({ order, onClose }) {
         ${order.customer_name ? `<div class="info-row"><span>Customer</span><span>${order.customer_name}</span></div>` : ''}
         ${order.table_number  ? `<div class="info-row"><span>Table</span><span>${order.table_number}</span></div>` : ''}
         ${order.payment_method ? `<div class="info-row"><span>Payment</span><span>${order.payment_method}</span></div>` : ''}
+        ${posNum ? `<div class="info-row"><span>POS #</span><span>${posNum}</span></div>` : ''}
+        ${regNum ? `<div class="info-row"><span>Register #</span><span>${regNum}</span></div>` : ''}
+        ${devNum ? `<div class="info-row"><span>Device #</span><span>${devNum}</span></div>` : ''}
+        ${cashier ? `<div class="info-row"><span>Cashier</span><span>${cashier}</span></div>` : ''}
         <hr class="divider"/>
         <div class="items-header">ITEMS</div>
         ${(order.items || []).map(item => {
@@ -173,7 +181,11 @@ function ReceiptModal({ order, onClose }) {
               ['💳 Payment', order.payment_method || '—'],
               ['📍 Source', <Badge style={{ background: SOURCE_BADGE[order.source]?.bg || '#eee', color: SOURCE_BADGE[order.source]?.color || '#333' }}>{SOURCE_BADGE[order.source]?.label || order.source}</Badge>],
               ['🔖 Status', <Badge style={{ background: statusInfo.bg, color: statusInfo.color }}>{statusInfo.label}</Badge>],
-              ...(order.customer_name ? [['👤 Customer', order.customer_name]] : []),
+              ...(posNum ? [['📟 POS #', posNum]] : []),
+              ...(regNum ? [['🖥️ Register', regNum]] : []),
+              ...(devNum ? [['📱 Device', devNum]] : []),
+              ...(cashier ? [['👤 Cashier', cashier]] : []),
+              ...(order.customer_name ? [['👥 Customer', order.customer_name]] : []),
               ...(order.table_number  ? [['🪑 Table', order.table_number]] : []),
             ].map(([label, val], i) => (
               <div key={i}>

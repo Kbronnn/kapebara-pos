@@ -309,6 +309,87 @@ export default function POS() {
     }
   };
 
+  const handlePrintReceipt = () => {
+    if (!receiptData) return;
+    const win = window.open('', '_blank', 'width=400,height=700');
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Receipt — ${receiptData.order_number}</title>
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: 'Courier New', monospace; font-size: 13px; color: #1a1a1a; padding: 20px; max-width: 340px; margin: auto; }
+          .logo-row { text-align: center; margin-bottom: 8px; }
+          .logo-row h2 { font-size: 1.5rem; letter-spacing: 2px; }
+          .logo-row p  { font-size: 0.75rem; color: #555; }
+          .divider { border: none; border-top: 1px dashed #999; margin: 10px 0; }
+          .info-row { display: flex; justify-content: space-between; margin: 3px 0; }
+          .items-header { font-weight: bold; margin: 6px 0 4px; font-size: 0.8rem; }
+          .item-row { display: flex; justify-content: space-between; margin: 3px 0; }
+          .item-name { flex: 1; }
+          .item-custom { font-size: 0.7rem; color: #555; margin-left: 8px; }
+          .totals { margin-top: 8px; }
+          .totals .row { display: flex; justify-content: space-between; margin: 3px 0; }
+          .totals .grand { font-weight: bold; font-size: 1.05rem; }
+          .footer { text-align: center; margin-top: 14px; font-size: 0.75rem; color: #777; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <div class="logo-row">
+          <h2>☕ KapeBara</h2>
+          <p>Coffee Shop · Official Receipt</p>
+        </div>
+        <hr class="divider"/>
+        <div class="info-row"><span>Order #</span><span>${receiptData.order_number || '—'}</span></div>
+        <div class="info-row"><span>Date</span><span>${new Date().toLocaleString('en-PH')}</span></div>
+        <div class="info-row"><span>Source</span><span>Walk-in POS</span></div>
+        <div class="info-row"><span>Payment</span><span>Cash</span></div>
+        ${receiptData.tableNum ? `<div class="info-row"><span>Table</span><span>${receiptData.tableNum}</span></div>` : ''}
+        <div class="info-row"><span>POS #</span><span>${receiptData.posNumber || 'POS-1'}</span></div>
+        <div class="info-row"><span>Register #</span><span>${receiptData.registerNumber || 'REG-01'}</span></div>
+        <div class="info-row"><span>Device #</span><span>${receiptData.deviceNumber || 'DEV-001'}</span></div>
+        <div class="info-row"><span>Cashier</span><span>${receiptData.cashierName || 'Staff'}</span></div>
+        <hr class="divider"/>
+        <div class="items-header">ITEMS</div>
+        ${(receiptData.items || []).map(item => {
+          const parts = [];
+          if (item.customizations) {
+            if (item.customizations.temperature) parts.push(item.customizations.temperature);
+            if (item.customizations.sugar && item.customizations.sugar !== '100%') parts.push(`Sugar: ${item.customizations.sugar}`);
+            if (item.customizations.milk && item.customizations.milk !== 'Whole') parts.push(`Milk: ${item.customizations.milk}`);
+            if (item.customizations.iceCream) parts.push('Ice Cream');
+            if (item.customizations.drinkaddon && item.customizations.drinkaddon !== 'None') parts.push(item.customizations.drinkaddon);
+          }
+          const cStr = parts.join(' · ');
+          return `
+            <div class="item-row">
+              <span class="item-name">${item.name} x${item.qty}</span>
+              <span>${formatPHP((item.finalPrice || item.price) * item.qty)}</span>
+            </div>
+            ${cStr ? `<div class="item-custom">${cStr}</div>` : ''}
+          `;
+        }).join('')}
+        <hr class="divider"/>
+        <div class="totals">
+          <div class="row"><span>Subtotal</span><span>${formatPHP(receiptData.subtotal || 0)}</span></div>
+          ${(receiptData.discount || 0) > 0 ? `<div class="row"><span>Discount</span><span>-${formatPHP(receiptData.discount)}</span></div>` : ''}
+          <div class="row grand"><span>TOTAL</span><span>${formatPHP(receiptData.total || 0)}</span></div>
+        </div>
+        <hr class="divider"/>
+        <div class="footer">
+          <p>Thank you for visiting KapeBara! ☕</p>
+          <p style="margin-top:4px">Please come again</p>
+        </div>
+      </body>
+      </html>
+    `);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); win.close(); }, 400);
+  };
+
   const handleLoadPortalOrder = async (order) => {
     try {
       await API.patch(`/orders/${order.id}/status`, { status: 'processing' });
@@ -852,8 +933,11 @@ export default function POS() {
                 )}
                 <div className="receipt-footer">Thank you for visiting KapeBara!<br />Come back soon ☕</div>
               </div>
-              <div className="modal-actions">
-                <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => setReceiptModalOpen(false)}>
+              <div className="modal-actions" style={{ display: 'flex', gap: '10px' }}>
+                <button className="btn btn-secondary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={handlePrintReceipt}>
+                  🖨️ Print Receipt
+                </button>
+                <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => setReceiptModalOpen(false)}>
                   🛒 New Order
                 </button>
               </div>
