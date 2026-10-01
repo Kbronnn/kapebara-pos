@@ -89,7 +89,7 @@ export default function Reports() {
           labels: ['Walk-in (POS)', 'Portal Orders'],
           datasets: [{
             data: [posCount, portalCount],
-            backgroundColor: ['#4a2c0a', '#d351aeff'],
+            backgroundColor: ['#4a2c0a', '#9F431C'],
             borderColor: ['#fff', '#fff'],
             borderWidth: 3
           }]
