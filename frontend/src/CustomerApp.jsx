@@ -978,6 +978,7 @@ export default function CustomerApp() {
   const [custSugar, setCustSugar] = useState('100%');
   const [custMilk, setCustMilk] = useState('Whole');
   const [custIceCream, setCustIceCream] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [custDrinkAddon, setCustDrinkAddon] = useState('None');
   const [custAddons, setCustAddons] = useState([]);
 
@@ -1533,6 +1534,7 @@ export default function CustomerApp() {
               <img src={logoImg} alt="KapeBara Logo" className="landing-logo" />
               <span className="landing-name">KapeBara</span>
             </div>
+            {/* Desktop nav */}
             <nav className="landing-nav">
               <a href="#landing-view">Home</a>
               <a href="#about-us">About Us</a>
@@ -1542,8 +1544,34 @@ export default function CustomerApp() {
               <a href="#rate-us">Rate Us</a>
               <a href="#contacts">Contacts</a>
             </nav>
-            <button className="landing-login-btn" onClick={() => { setView('auth'); setAuthMode('login'); }}>Login</button>
+            <button className="landing-login-btn landing-login-btn--desktop" onClick={() => { setView('auth'); setAuthMode('login'); }}>Login</button>
+            {/* Hamburger button (mobile only) */}
+            <button
+              className="hamburger-btn"
+              onClick={() => setMobileNavOpen(prev => !prev)}
+              aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileNavOpen}
+            >
+              <span className={`hamburger-icon ${mobileNavOpen ? 'open' : ''}`}>
+                <span></span><span></span><span></span>
+              </span>
+            </button>
           </header>
+          {/* Mobile Nav Drawer */}
+          {mobileNavOpen && (
+            <div className="mobile-nav-drawer" onClick={() => setMobileNavOpen(false)}>
+              <div className="mobile-nav-content" onClick={e => e.stopPropagation()}>
+                <a href="#landing-view" onClick={() => setMobileNavOpen(false)}>🏠 Home</a>
+                <a href="#about-us" onClick={() => setMobileNavOpen(false)}>📖 About Us</a>
+                <a href="#services" onClick={() => setMobileNavOpen(false)}>☕ Services</a>
+                <a href="#menu" onClick={() => setMobileNavOpen(false)}>🍽️ Menu</a>
+                <a href="#events-landing" onClick={() => setMobileNavOpen(false)}>📅 Events</a>
+                <a href="#rate-us" onClick={() => setMobileNavOpen(false)}>⭐ Rate Us</a>
+                <a href="#contacts" onClick={() => setMobileNavOpen(false)}>📍 Contacts</a>
+                <button className="landing-login-btn" style={{ width: '100%', marginTop: '8px' }} onClick={() => { setView('auth'); setAuthMode('login'); setMobileNavOpen(false); }}>Login</button>
+              </div>
+            </div>
+          )}
 
           <div className="landing-hero">
             <div className="hero-content">
@@ -1866,7 +1894,7 @@ export default function CustomerApp() {
       {/* PORTAL VIEW */}
       {view === 'portal' && customer && (
         <div id="portal-view" className="portal-container" style={{ display: 'block' }}>
-          <div id="portal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', marginBottom: '20px', borderBottom: '1px solid var(--border)', position: 'relative' }}>
+          <div id="portal-header">
             <div className="landing-brand">
               <img src={logoImg} alt="KapeBara Logo" className="landing-logo" style={{ width: '40px', height: '40px' }} />
               <div>
@@ -1874,7 +1902,7 @@ export default function CustomerApp() {
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Customer Portal</span>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
+            <div className="portal-user-meta">
               {/* Notification Bell Button */}
               <button
                 id="event-notif-btn"
@@ -1923,7 +1951,7 @@ export default function CustomerApp() {
                   position: 'absolute',
                   top: '52px',
                   right: '0',
-                  width: '360px',
+                  width: 'min(360px, calc(100vw - 32px))',
                   maxHeight: '500px',
                   overflowY: 'auto',
                   background: '#ffffff',
@@ -2341,7 +2369,7 @@ export default function CustomerApp() {
             {activeTab === 'tab-events' && (
               <div id="tab-events" className="portal-tab-panel active">
                 <h2 className="section-title" style={{ marginBottom: '24px', borderBottom: 'none' }}>Events & Booking</h2>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '30px' }}>
+                <div className="portal-events-layout">
                   <div>
                     <h3 style={{ fontFamily: "'Playfair Display', serif", color: 'var(--accent)', marginBottom: '16px' }}>Upcoming Events</h3>
                     <div className="events-grid" id="events-grid">
@@ -2387,7 +2415,7 @@ export default function CustomerApp() {
                           <label htmlFor="event-title">Event Title</label>
                           <input type="text" id="event-title" required placeholder="e.g. Birthday Party, Study Group" value={hostForm.title} onChange={e => setHostForm(f => ({ ...f, title: e.target.value }))} />
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                        <div className="form-grid-2col">
                           <div className="form-group">
                             <label htmlFor="event-date">Proposed Date</label>
                             <input
@@ -2418,7 +2446,7 @@ export default function CustomerApp() {
                             </select>
                           </div>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                        <div className="form-grid-2col">
                           <div className="form-group">
                             <label htmlFor="event-phone">Contact Phone Number</label>
                             <input type="tel" id="event-phone" required placeholder="e.g. 0919-xxx-xxxx" value={hostForm.phone} onChange={e => setHostForm(f => ({ ...f, phone: formatPhoneNumber(e.target.value) }))} />
@@ -2483,14 +2511,14 @@ export default function CustomerApp() {
                     <button key={h.id} className={`portal-menu-pill ${menuFilter === h.id ? 'active' : ''}`} onClick={() => { setMenuFilter(h.id); setMenuCatFilter('All'); }}>{h.label}</button>
                   ))}
                 </div>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                <div className="portal-menu-cat-row">
                   {menuCategories.map(cat => (
                     <button key={cat} className={`menu-cat-tab ${menuCatFilter === cat ? 'active' : ''}`} onClick={() => setMenuCatFilter(cat)}>{cat}</button>
                   ))}
                 </div>
 
                 {/* Two-column: product grid + cart */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 300px', gap: '24px', alignItems: 'start' }}>
+                <div className="portal-menu-layout">
                   {/* Product grid */}
                   <div>
                     <div className="menu-products-grid" id="portal-menu-grid">
@@ -2548,7 +2576,7 @@ export default function CustomerApp() {
                   </div>
 
                   {/* Cart sidebar */}
-                  <div style={{ position: 'sticky', top: '20px' }}>
+                  <div className="portal-cart-sidebar">
                     <div style={{ background: '#faf7f2', border: '1.5px solid var(--border)', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 16px rgba(74,44,10,0.08)' }}>
                       <h3 style={{ fontFamily: "'Playfair Display', serif", color: 'var(--espresso)', marginBottom: '16px', fontSize: '1.1rem' }}>🛒 Your Order</h3>
                       {portalCart.length === 0 ? (

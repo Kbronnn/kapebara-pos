@@ -187,6 +187,7 @@ async function loadEventRequests() {
         : '—';
       const privateBadge = e.is_private
         ? `<span class="badge" style="background:#ede7f6;color:#512da8">🔒 Private</span>`
+        : '';
       const regCount = (e.participants && e.participants.length) || (e.participant_names && e.participant_names.length) || 0;
       const regNames = e.participant_names && e.participant_names.length ? `Registered (${e.participant_names.length}): ${e.participant_names.join(', ')}` : `${regCount} registered`;
       return `<tr>
