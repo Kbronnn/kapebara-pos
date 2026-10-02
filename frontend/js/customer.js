@@ -425,8 +425,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Build tooltip content
         let tooltipHtml = '';
         if (isBooked) {
+          const colIndex = (startOffset + d - 1) % 7;
+          const tooltipPos = colIndex <= 1 ? 'cal-tooltip-left' : colIndex >= 5 ? 'cal-tooltip-right' : 'cal-tooltip-center';
           tooltipHtml = `
-            <div class="cal-cell-tooltip">
+            <div class="cal-cell-tooltip ${tooltipPos}">
               <div class="tooltip-title">📅 ${monthName} ${d}, ${year}</div>
               ${events.map(ev => {
                 const title = ev.is_private ? '🔒 Private Event' : ev.title;

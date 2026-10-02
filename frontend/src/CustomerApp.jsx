@@ -451,6 +451,7 @@ function ShopCalendar({ customerId }) {
   const [calYear, setCalYear] = useState(now.getFullYear());
   const [calMonth, setCalMonth] = useState(now.getMonth());
   const [calendar, setCalendar] = useState({});
+  const [selectedBookedDay, setSelectedBookedDay] = useState(null);
   const currentYear = now.getFullYear();
 
   useEffect(() => {
@@ -478,10 +479,12 @@ function ShopCalendar({ customerId }) {
   for (let i = 0; i < remaining; i++) cells.push({ empty: true, key: 'r' + i });
 
   const prevMonth = () => {
+    setSelectedBookedDay(null);
     if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); }
     else setCalMonth(m => m - 1);
   };
   const nextMonth = () => {
+    setSelectedBookedDay(null);
     if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); }
     else setCalMonth(m => m + 1);
   };
@@ -492,10 +495,10 @@ function ShopCalendar({ customerId }) {
         <div className="cal-header" style={{ margin: 0, textAlign: 'left' }}>{monthName} {calYear}</div>
         <div className="cal-controls">
           <button className="cal-nav-btn" onClick={prevMonth}>◀</button>
-          <select className="cal-select" value={calMonth} onChange={e => setCalMonth(parseInt(e.target.value))}>
+          <select className="cal-select" value={calMonth} onChange={e => { setSelectedBookedDay(null); setCalMonth(parseInt(e.target.value)); }}>
             {MONTH_NAMES.map((n, i) => <option key={i} value={i}>{n}</option>)}
           </select>
-          <select className="cal-select" value={calYear} onChange={e => setCalYear(parseInt(e.target.value))}>
+          <select className="cal-select" value={calYear} onChange={e => { setSelectedBookedDay(null); setCalYear(parseInt(e.target.value)); }}>
             {[currentYear, currentYear + 1, currentYear + 2].map(yr => <option key={yr} value={yr}>{yr}</option>)}
           </select>
           <button className="cal-nav-btn" onClick={nextMonth}>▶</button>
@@ -509,14 +512,34 @@ function ShopCalendar({ customerId }) {
           if (cell.isToday) cls += ' cal-today';
           if (cell.isPast)  cls += ' cal-past';
           if (cell.isBooked) cls += ' cal-booked';
+          if (cell.isBooked && selectedBookedDay?.dateKey === cell.dateKey) cls += ' cal-cell-selected';
+
+          const colIndex = idx % 7;
+          const tooltipPositionClass = colIndex <= 1 ? 'cal-tooltip-left' : colIndex >= 5 ? 'cal-tooltip-right' : 'cal-tooltip-center';
+
           return (
-            <div key={cell.d} className={cls}>
+            <div
+              key={cell.d}
+              className={cls}
+              onClick={() => {
+                if (cell.isBooked) {
+                  setSelectedBookedDay(prev => prev?.dateKey === cell.dateKey ? null : {
+                    ...cell,
+                    displayDate: `${monthName} ${cell.d}, ${calYear}`
+                  });
+                }
+              }}
+              role={cell.isBooked ? 'button' : undefined}
+              tabIndex={cell.isBooked ? 0 : undefined}
+              aria-label={cell.isBooked ? `${monthName} ${cell.d}, ${calYear}: ${cell.evs.length} booked event(s)` : undefined}
+              style={cell.isBooked ? { cursor: 'pointer' } : undefined}
+            >
               <span className="cal-day-num">{cell.d}</span>
               {cell.isBooked && (
                 <>
                   <div className="cal-event-dots">{cell.evs.map((_, i) => <div key={i} className="cal-event-dot">●</div>)}</div>
                   <div className="cal-booked-label">Booked</div>
-                  <div className="cal-cell-tooltip">
+                  <div className={`cal-cell-tooltip ${tooltipPositionClass}`}>
                     <div className="tooltip-title">📅 {monthName} {cell.d}, {calYear}</div>
                     {cell.evs.map((ev, i) => (
                       <div key={i} style={{ marginBottom: '6px', fontSize: '0.75rem' }}>
@@ -531,6 +554,58 @@ function ShopCalendar({ customerId }) {
           );
         })}
       </div>
+
+      {selectedBookedDay && (
+        <div className="cal-selected-event-card">
+          <div className="cal-selected-event-header">
+            <div className="cal-selected-event-title-wrap">
+              <span className="cal-event-badge-icon">📅</span>
+              <div>
+                <div className="cal-selected-event-heading">{selectedBookedDay.displayDate}</div>
+                <div className="cal-selected-event-sub">
+                  {selectedBookedDay.evs.length} scheduled {selectedBookedDay.evs.length === 1 ? 'event' : 'events'}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="cal-close-selected-btn"
+              onClick={() => setSelectedBookedDay(null)}
+              aria-label="Close event details"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="cal-selected-events-list">
+            {selectedBookedDay.evs.map((ev, i) => (
+              <div key={i} className="cal-selected-event-item">
+                <div className="cal-event-item-top">
+                  <span className="cal-event-time-pill">
+                    🕐 {ev.preferred_time ? formatTimeRange(ev.preferred_time, ev.duration_hours) : 'All Day'}
+                  </span>
+                  {ev.is_private && <span className="cal-private-pill">🔒 Private Booking</span>}
+                </div>
+                <div className="cal-event-item-name">
+                  {ev.is_private ? 'Private Event Reserved' : (ev.title || 'Reserved Event')}
+                </div>
+                {ev.description && (
+                  <div className="cal-event-item-desc">{ev.description}</div>
+                )}
+                {ev.max_guests && (
+                  <div className="cal-event-item-guests">
+                    👥 Expected Guests: <strong>{ev.max_guests}</strong>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="cal-interaction-hint">
+        💡 <em>Tap any booked date to view full details</em>
+      </div>
+
       <div className="cal-legend">
         <span className="cal-legend-item"><span className="cal-legend-dot booked">●</span> Booked</span>
         <span className="cal-legend-item"><span className="cal-legend-dot today">●</span> Today</span>
@@ -2417,7 +2492,7 @@ export default function CustomerApp() {
                           <input type="text" id="event-title" required placeholder="e.g. Birthday Party, Study Group" value={hostForm.title} onChange={e => setHostForm(f => ({ ...f, title: e.target.value }))} />
                         </div>
                         <div className="form-grid-2col event-datetime-grid">
-                          <div className="form-group">
+                          <div className="form-group event-datetime-group">
                             <label htmlFor="event-date">Proposed Date</label>
                             <input
                               type="date"
@@ -2438,7 +2513,7 @@ export default function CustomerApp() {
                               }}
                             />
                           </div>
-                          <div className="form-group">
+                          <div className="form-group event-datetime-group">
                             <label htmlFor="event-time">Preferred Start Time</label>
                             <select id="event-time" value={hostForm.time} onChange={e => setHostForm(f => ({ ...f, time: e.target.value }))}>
                               {generateTimeSlots(shopSettings.shop_open_time, shopSettings.shop_close_time).map(slot => (
