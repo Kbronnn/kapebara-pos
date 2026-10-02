@@ -966,6 +966,7 @@ export default function CustomerApp() {
 
   // Portal ordering cart
   const [portalCart, setPortalCart] = useState([]);
+  const [showCartModal, setShowCartModal] = useState(false);
   const [portalOrderMsg, setPortalOrderMsg] = useState('');
   const [portalOrderLoading, setPortalOrderLoading] = useState(false);
   const [myOrders, setMyOrders] = useState([]);
@@ -1436,9 +1437,9 @@ export default function CustomerApp() {
     }
   };
 
-  const updatePortalCartQty = (cartKey, delta) => {
+  const updatePortalCartQty = (cartKeyOrId, delta) => {
     setPortalCart(prev => {
-      const updated = prev.map(i => i.cartKey === cartKey ? { ...i, qty: i.qty + delta } : i)
+      const updated = prev.map(i => (i.cartKey === cartKeyOrId || i.id === cartKeyOrId) ? { ...i, qty: i.qty + delta } : i)
         .filter(i => i.qty > 0);
       return updated;
     });
@@ -2415,7 +2416,7 @@ export default function CustomerApp() {
                           <label htmlFor="event-title">Event Title</label>
                           <input type="text" id="event-title" required placeholder="e.g. Birthday Party, Study Group" value={hostForm.title} onChange={e => setHostForm(f => ({ ...f, title: e.target.value }))} />
                         </div>
-                        <div className="form-grid-2col">
+                        <div className="form-grid-2col event-datetime-grid">
                           <div className="form-group">
                             <label htmlFor="event-date">Proposed Date</label>
                             <input
@@ -2542,32 +2543,51 @@ export default function CustomerApp() {
                                 OUT OF STOCK
                               </span>
                             )}
-                            <div className="menu-item-emoji-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <ProductThumb product={p} size={64} />
+                            <div className="menu-item-emoji-wrap">
+                              <ProductThumb product={p} size={54} />
                             </div>
                             <div className="menu-item-body">
-                              <div className="menu-item-name">{p.name}</div>
-                              <div className="menu-item-desc">{p.description || ''}</div>
+                              <div className="menu-item-name" title={p.name}>{p.name}</div>
                               <div className="menu-item-footer">
                                 <div className="menu-item-price">₱{parseFloat(p.price).toFixed(2)}</div>
                                 <span style={{ fontSize: '0.72rem', color: '#aaa' }}>{p.category}</span>
                               </div>
-                              {/* Add to order controls */}
-                              {isOut ? (
-                                <button disabled style={{ marginTop: '10px', width: '100%', padding: '7px', background: '#e0e0e0', color: '#777', border: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '0.82rem', cursor: 'not-allowed' }}>
-                                  Out of Stock
-                                </button>
-                              ) : inCart ? (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginTop: '10px' }}>
-                                  <button onClick={() => updatePortalCartQty(p.id, -1)} style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#f5ebe0', border: '1px solid #d9c4a7', fontWeight: 700, fontSize: '1rem', cursor: 'pointer' }}>−</button>
-                                  <span style={{ fontWeight: 700, minWidth: '20px', textAlign: 'center' }}>{inCart.qty}</span>
-                                  <button onClick={() => updatePortalCartQty(p.id, 1)} style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--accent)', border: 'none', color: '#fff', fontWeight: 700, fontSize: '1rem', cursor: 'pointer' }}>+</button>
-                                </div>
-                              ) : (
-                                <button onClick={() => addToPortalCart(p)} style={{ marginTop: '10px', width: '100%', padding: '7px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer', transition: 'opacity 0.15s' }}>
-                                  + Add to Order
-                                </button>
-                              )}
+                              {/* Add to order controls - uniform pinned button */}
+                              <div className="menu-item-action-wrap">
+                                {isOut ? (
+                                  <button disabled className="menu-card-btn menu-card-btn--disabled">
+                                    Out of Stock
+                                  </button>
+                                ) : inCart ? (
+                                  <div className="menu-card-qty-row">
+                                    <button
+                                      type="button"
+                                      className="menu-qty-btn menu-qty-btn--minus"
+                                      onClick={() => updatePortalCartQty(p.id, -1)}
+                                      title="Decrease quantity"
+                                    >
+                                      −
+                                    </button>
+                                    <span className="menu-qty-count">{inCart.qty}</span>
+                                    <button
+                                      type="button"
+                                      className="menu-qty-btn menu-qty-btn--plus"
+                                      onClick={() => updatePortalCartQty(p.id, 1)}
+                                      title="Increase quantity"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="menu-card-btn"
+                                    onClick={() => addToPortalCart(p)}
+                                  >
+                                    + Add to Order
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         );
@@ -2609,10 +2629,10 @@ export default function CustomerApp() {
                                   )}
                                   <div style={{ fontSize: '0.78rem', color: '#999', marginTop: '1px' }}>₱{item.price.toFixed(2)} each</div>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <button onClick={() => updatePortalCartQty(item.cartKey, -1)} style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#f0e6d8', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}>−</button>
-                                  <span style={{ minWidth: '18px', textAlign: 'center', fontWeight: 700, fontSize: '0.88rem' }}>{item.qty}</span>
-                                  <button onClick={() => updatePortalCartQty(item.cartKey, 1)} style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--accent)', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}>+</button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <button type="button" onClick={() => updatePortalCartQty(item.cartKey, -1)} className="cart-qty-btn cart-qty-btn--minus" title="Decrease quantity">−</button>
+                                  <span className="cart-qty-num">{item.qty}</span>
+                                  <button type="button" onClick={() => updatePortalCartQty(item.cartKey, 1)} className="cart-qty-btn cart-qty-btn--plus" title="Increase quantity">+</button>
                                 </div>
                               </div>
                             );
@@ -2875,6 +2895,138 @@ export default function CustomerApp() {
         }}
         onCancel={() => setBellLeaveConfirm(null)}
       />
+
+      {/* Floating Pop-up Cart Button */}
+      {view === 'portal' && (activeTab === 'tab-menu' || portalCart.length > 0) && (
+        <button
+          id="portal-floating-cart-fab"
+          type="button"
+          className={`floating-cart-fab ${portalCart.length > 0 ? 'has-items' : ''}`}
+          onClick={() => setShowCartModal(true)}
+          aria-label="View Cart"
+        >
+          <div className="cart-fab-icon-wrap">
+            <span className="cart-fab-icon">🛒</span>
+            {portalCart.length > 0 && (
+              <span className="cart-fab-badge">
+                {portalCart.reduce((sum, i) => sum + i.qty, 0)}
+              </span>
+            )}
+          </div>
+          <div className="cart-fab-info">
+            <span className="cart-fab-title">
+              {portalCart.length === 0 ? 'View Cart' : `₱${portalCartTotal.toFixed(2)}`}
+            </span>
+            {portalCart.length > 0 && (
+              <span className="cart-fab-sub">Checkout →</span>
+            )}
+          </div>
+        </button>
+      )}
+
+      {/* Pop-up Cart Modal */}
+      {showCartModal && (
+        <div
+          className="modal-overlay"
+          style={{ display: 'flex', zIndex: 3000 }}
+          onClick={e => {
+            if (e.target.classList.contains('modal-overlay')) setShowCartModal(false);
+          }}
+        >
+          <div className="cust-modal-box cart-popup-modal" style={{ maxWidth: '440px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="cust-modal-header" style={{ marginBottom: '14px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+              <h2 className="cust-modal-title" style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🛒 Your Order
+                {portalCart.length > 0 && (
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-light)', background: '#f5ede3', padding: '2px 8px', borderRadius: '12px' }}>
+                    {portalCart.reduce((sum, i) => sum + i.qty, 0)} items
+                  </span>
+                )}
+              </h2>
+              <button type="button" className="cust-modal-close" onClick={() => setShowCartModal(false)} aria-label="Close cart">✕</button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', minHeight: '120px', maxHeight: '52vh' }}>
+              {portalCart.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '36px 0', color: '#999' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>🍽️</div>
+                  <p style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--espresso)', marginBottom: '4px' }}>Your cart is empty</p>
+                  <p style={{ fontSize: '0.8rem' }}>Browse the menu and add items to place your order!</p>
+                </div>
+              ) : (
+                portalCart.map(item => {
+                  const customDetails = [];
+                  if (item.customizations) {
+                    if (item.customizations.temperature) customDetails.push(item.customizations.temperature === 'Hot' ? '☕ Hot' : '🧊 Cold');
+                    if (item.customizations.sugar && item.customizations.sugar !== '100%') customDetails.push(`${item.customizations.sugar} Sugar`);
+                    if (item.customizations.milk && item.customizations.milk !== 'Whole') customDetails.push(`${item.customizations.milk} Milk`);
+                    if (item.customizations.iceCream) customDetails.push('🍨 + Ice Cream');
+                    if (item.customizations.drinkaddon && item.customizations.drinkaddon !== 'None') customDetails.push(`+ ${item.customizations.drinkaddon}`);
+                  }
+                  return (
+                    <div key={item.cartKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f0e6d8' }}>
+                      <div style={{ flex: 1, minWidth: 0, paddingRight: '10px' }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#3a2510', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <ProductThumb product={item} size={24} style={{ borderRadius: '6px' }} />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                        </div>
+                        {customDetails.length > 0 && (
+                          <div style={{ fontSize: '0.74rem', color: 'var(--accent)', marginTop: '2px', fontWeight: 500 }}>
+                            {customDetails.join(' · ')}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '0.8rem', color: 'var(--accent)', fontWeight: 600, marginTop: '2px' }}>
+                          ₱{(item.price * item.qty).toFixed(2)}
+                          {item.qty > 1 && <span style={{ fontSize: '0.72rem', color: '#999', fontWeight: 400, marginLeft: '4px' }}>(₱{item.price.toFixed(2)} ea)</span>}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button type="button" onClick={() => updatePortalCartQty(item.cartKey, -1)} className="cart-qty-btn cart-qty-btn--minus" title="Decrease quantity">−</button>
+                        <span className="cart-qty-num">{item.qty}</span>
+                        <button type="button" onClick={() => updatePortalCartQty(item.cartKey, 1)} className="cart-qty-btn cart-qty-btn--plus" title="Increase quantity">+</button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {portalCart.length > 0 && (
+              <div style={{ borderTop: '1.5px solid #f0e6d8', paddingTop: '14px', marginTop: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text-light)', fontSize: '0.95rem' }}>Total</span>
+                  <span style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--espresso)' }}>₱{portalCartTotal.toFixed(2)}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handlePlacePortalOrder}
+                  disabled={portalOrderLoading}
+                  className="cust-btn-add"
+                  style={{ width: '100%', padding: '13px', fontSize: '0.98rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', borderRadius: '12px' }}
+                >
+                  {portalOrderLoading ? 'Placing Order…' : '✅ Place Order & Checkout'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Clear all items from your cart?')) setPortalCart([]);
+                  }}
+                  style={{ marginTop: '8px', width: '100%', padding: '8px', background: 'transparent', color: '#999', border: 'none', fontSize: '0.8rem', cursor: 'pointer', textAlign: 'center' }}
+                >
+                  Clear Cart
+                </button>
+              </div>
+            )}
+
+            {portalOrderMsg && (
+              <div style={{ marginTop: '12px', padding: '10px 14px', background: portalOrderMsg.includes('✅') ? '#d4edda' : '#f8d7da', color: portalOrderMsg.includes('✅') ? '#155724' : '#721c24', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 600, textAlign: 'center' }}>
+                {portalOrderMsg}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

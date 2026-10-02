@@ -1354,8 +1354,7 @@ textarea:focus {
     gap: 24px;
   }
   .portal-cart-sidebar {
-    position: static !important;
-    top: auto;
+    display: none !important;
   }
   .portal-tabs-header {
     overflow-x: auto;
@@ -1872,4 +1871,282 @@ textarea:focus {
   .pass-no-print {
     display: none !important;
   }
+}
+
+/* ── Proposed Date & Preferred Start Time matching size ──────────────────── */
+.event-datetime-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 12px !important;
+}
+
+#event-date,
+#event-time {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  padding: 8px 12px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  background-color: #fff !important;
+  color: var(--text-dark) !important;
+  font-family: inherit !important;
+  font-size: 0.9rem !important;
+  box-sizing: border-box !important;
+}
+
+/* ── Uniform Product Card & Pinned Button Placement ─────────────────────── */
+.menu-item-card {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+}
+
+.menu-item-body {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  padding: 10px 10px 12px !important;
+}
+
+.menu-item-name {
+  font-weight: 700 !important;
+  font-size: 0.82rem !important;
+  color: #3a2510 !important;
+  margin-bottom: 4px !important;
+  line-height: 1.25 !important;
+  min-height: 2.5em !important;
+  max-height: 2.5em !important;
+  overflow: hidden !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+}
+
+.menu-item-action-wrap {
+  margin-top: auto !important;
+  width: 100% !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.menu-card-btn {
+  width: 100% !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 10px !important;
+  background: var(--accent) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  font-size: 0.82rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  transition: opacity 0.15s !important;
+}
+
+.menu-card-btn:hover {
+  opacity: 0.9;
+}
+
+.menu-card-btn--disabled {
+  background: #e0e0e0 !important;
+  color: #777 !important;
+  cursor: not-allowed !important;
+}
+
+.menu-card-qty-row {
+  width: 100% !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  box-sizing: border-box !important;
+}
+
+.menu-qty-btn {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 700 !important;
+  font-size: 1.1rem !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  user-select: none !important;
+}
+
+.menu-qty-btn--minus {
+  background: #f5ebe0 !important;
+  border: 1px solid #d9c4a7 !important;
+  color: var(--espresso) !important;
+}
+
+.menu-qty-btn--plus {
+  background: var(--accent) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+.menu-qty-count {
+  font-weight: 700;
+  min-width: 20px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--espresso);
+}
+
+/* ── Uniform Filter Buttons ─────────────────────────────────────────────── */
+.portal-menu-filters {
+  display: flex !important;
+  gap: 8px !important;
+  width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  margin-bottom: 12px !important;
+}
+.portal-menu-filters::-webkit-scrollbar {
+  display: none !important;
+}
+.portal-menu-pill {
+  flex: 1 1 0 !important;
+  min-width: fit-content !important;
+  padding: 8px 12px !important;
+  font-size: 0.8rem !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* ── Perfectly Centered Cart Item +/- Buttons ────────────────────────────── */
+.cart-qty-btn {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  border-radius: 50% !important;
+  border: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 700 !important;
+  font-size: 1.15rem !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  box-sizing: border-box !important;
+  transition: transform 0.1s, opacity 0.15s !important;
+}
+.cart-qty-btn:active {
+  transform: scale(0.92);
+}
+.cart-qty-btn--minus {
+  background: #f0e6d8 !important;
+  color: var(--espresso) !important;
+}
+.cart-qty-btn--plus {
+  background: var(--accent) !important;
+  color: #fff !important;
+}
+.cart-qty-num {
+  min-width: 20px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--espresso);
+}
+
+/* ── Floating Action Cart Button & Pop-up Modal ──────────────────────────── */
+.floating-cart-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 20px;
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  background: var(--espresso);
+  color: #fff;
+  border: 2px solid var(--secondary);
+  border-radius: 50px;
+  box-shadow: 0 8px 24px rgba(45, 27, 0, 0.35);
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: floatCartPop 0.25s ease;
+}
+.floating-cart-fab:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 12px 30px rgba(45, 27, 0, 0.45);
+}
+.floating-cart-fab:active {
+  transform: scale(0.96);
+}
+.cart-fab-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cart-fab-icon {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+.cart-fab-badge {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  background: #c0392b;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  line-height: 1;
+}
+.cart-fab-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+.cart-fab-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--secondary);
+}
+.cart-fab-sub {
+  font-size: 0.72rem;
+  color: #f3e5d3;
+  opacity: 0.9;
+}
+@keyframes floatCartPop {
+  0% { transform: scale(0.7); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
