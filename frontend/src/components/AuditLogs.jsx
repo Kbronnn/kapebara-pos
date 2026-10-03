@@ -19,6 +19,9 @@ export default function AuditLogs() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState('all');
+  const [activeStatFilter, setActiveStatFilter] = useState('all');
+  const [showUniqueModal, setShowUniqueModal] = useState(false);
+  const [showTodayModal, setShowTodayModal] = useState(false);
 
   // Add Account modal
   const [addAccOpen, setAddAccOpen] = useState(false);
@@ -87,9 +90,57 @@ export default function AuditLogs() {
 
   if (loading) return <div className="flex-center" style={{ height: '400px' }}><div className="spinner"></div></div>;
 
-  const filteredLogs = roleFilter === 'all' ? logs : logs.filter(l => l.role === roleFilter);
   const todayStr = new Date().toDateString();
-  const loginsToday = logs.filter(l => new Date(l.created_at).toDateString() === todayStr).length;
+  const todayLogs = logs.filter(l => new Date(l.created_at).toDateString() === todayStr);
+  const loginsToday = todayLogs.length;
+
+  // Build unique users dictionary
+  const uniqueUsersMap = {};
+  logs.forEach(l => {
+    if (!uniqueUsersMap[l.username]) {
+      uniqueUsersMap[l.username] = {
+        username: l.username,
+        role: l.role,
+        totalLogins: 0,
+        todayLogins: 0,
+        lastLogin: l.created_at,
+        lastIp: l.ip
+      };
+    }
+    uniqueUsersMap[l.username].totalLogins += 1;
+    if (new Date(l.created_at).toDateString() === todayStr) {
+      uniqueUsersMap[l.username].todayLogins += 1;
+    }
+    if (new Date(l.created_at) > new Date(uniqueUsersMap[l.username].lastLogin)) {
+      uniqueUsersMap[l.username].lastLogin = l.created_at;
+      uniqueUsersMap[l.username].lastIp = l.ip;
+      uniqueUsersMap[l.username].role = l.role;
+    }
+  });
+  const uniqueUsersList = Object.values(uniqueUsersMap).sort((a, b) => b.totalLogins - a.totalLogins);
+  const uniqueUsersToday = [...new Set(todayLogs.map(l => l.username))];
+
+  // Compute displayed logs based on stat filter and role filter
+  let displayedLogs = logs;
+  if (activeStatFilter === 'today') {
+    displayedLogs = todayLogs;
+  } else if (activeStatFilter === 'admin') {
+    displayedLogs = logs.filter(l => l.role === 'admin');
+  } else if (activeStatFilter === 'unique') {
+    // Show the latest login entry for each unique user
+    const seen = new Set();
+    displayedLogs = logs.filter(l => {
+      if (seen.has(l.username)) return false;
+      seen.add(l.username);
+      return true;
+    });
+  } else if (activeStatFilter && activeStatFilter !== 'all') {
+    displayedLogs = logs.filter(l => l.username === activeStatFilter);
+  }
+
+  if (roleFilter !== 'all' && activeStatFilter !== 'admin') {
+    displayedLogs = displayedLogs.filter(l => l.role === roleFilter);
+  }
 
   return (
     <div>
@@ -138,29 +189,98 @@ export default function AuditLogs() {
 
         {/* Login Stats */}
         <div className="card">
-          <div className="card-title">📊 Login Overview</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div className="card-title" style={{ margin: 0 }}>📊 Login Overview</div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Click cards to inspect</span>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '8px' }}>
-            {[
-              { num: logs.length, label: 'Total Login Events' },
-              { num: new Set(logs.map(l => l.username)).size, label: 'Unique Users' },
-              { num: logs.filter(l => l.role === 'admin').length, label: 'Admin Logins' },
-              { num: loginsToday, label: 'Logins Today' },
-            ].map((stat, i) => (
-              <div className="audit-stat-box" key={i}>
-                <div className="audit-stat-num">{stat.num}</div>
-                <div className="audit-stat-label">{stat.label}</div>
-              </div>
-            ))}
+            <div
+              className={`audit-stat-box ${activeStatFilter === 'all' && roleFilter === 'all' ? 'active' : ''}`}
+              onClick={() => { setActiveStatFilter('all'); setRoleFilter('all'); }}
+              title="Click to view all login events"
+            >
+              <div className="audit-stat-num">{logs.length}</div>
+              <div className="audit-stat-label">Total Login Events</div>
+              <div className="audit-stat-hint">Show all</div>
+            </div>
+
+            <div
+              className={`audit-stat-box ${activeStatFilter === 'unique' ? 'active' : ''}`}
+              onClick={() => {
+                setShowUniqueModal(true);
+                setActiveStatFilter('unique');
+              }}
+              title="Click to see who the unique users are"
+            >
+              <div className="audit-stat-num">{uniqueUsersList.length}</div>
+              <div className="audit-stat-label">Unique Users</div>
+              <div className="audit-stat-hint" style={{ color: 'var(--latte)', fontWeight: 700 }}>🔍 Click to see who</div>
+            </div>
+
+            <div
+              className={`audit-stat-box ${activeStatFilter === 'admin' || roleFilter === 'admin' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveStatFilter('admin');
+                setRoleFilter('admin');
+              }}
+              title="Click to filter admin logins"
+            >
+              <div className="audit-stat-num">{logs.filter(l => l.role === 'admin').length}</div>
+              <div className="audit-stat-label">Admin Logins</div>
+              <div className="audit-stat-hint">Filter admin</div>
+            </div>
+
+            <div
+              className={`audit-stat-box ${activeStatFilter === 'today' ? 'active' : ''}`}
+              onClick={() => {
+                setShowTodayModal(true);
+                setActiveStatFilter('today');
+              }}
+              title="Click to see who logged in today"
+            >
+              <div className="audit-stat-num" style={{ color: loginsToday > 0 ? 'var(--success)' : 'var(--espresso)' }}>{loginsToday}</div>
+              <div className="audit-stat-label">Logins Today</div>
+              <div className="audit-stat-hint" style={{ color: loginsToday > 0 ? 'var(--success)' : 'var(--latte)', fontWeight: 700 }}>🔍 Click to see who</div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Audit Log Table */}
       <div className="card">
-        <div className="section-header">
-          <span className="card-title" style={{ margin: 0 }}>🔐 Login History</span>
+        <div className="section-header" style={{ flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <span className="card-title" style={{ margin: 0 }}>🔐 Login History</span>
+            {(activeStatFilter !== 'all' || roleFilter !== 'all') && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <span className="badge" style={{ background: '#fdf3e3', color: 'var(--espresso)', border: '1px solid var(--border)' }}>
+                  Filter: {
+                    activeStatFilter === 'today' ? `📅 Today's Logins (${displayedLogs.length})` :
+                    activeStatFilter === 'unique' ? `👥 Unique Users Latest Logins (${displayedLogs.length})` :
+                    activeStatFilter === 'admin' ? `🔑 Admin Only (${displayedLogs.length})` :
+                    `👤 User: ${activeStatFilter} (${displayedLogs.length})`
+                  }
+                </span>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  style={{ padding: '2px 8px', fontSize: '0.72rem' }}
+                  onClick={() => { setActiveStatFilter('all'); setRoleFilter('all'); }}
+                >
+                  ✕ Clear
+                </button>
+              </div>
+            )}
+          </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <select className="form-control" style={{ width: '130px' }} value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
+            <select
+              className="form-control"
+              style={{ width: '130px' }}
+              value={roleFilter}
+              onChange={e => {
+                setRoleFilter(e.target.value);
+                if (e.target.value === 'all' && activeStatFilter === 'admin') setActiveStatFilter('all');
+              }}
+            >
               <option value="all">All Roles</option>
               <option value="admin">Admin</option>
               <option value="staff">Staff</option>
@@ -168,10 +288,17 @@ export default function AuditLogs() {
           </div>
         </div>
         <div className="table-wrap">
-          {filteredLogs.length === 0 ? (
+          {displayedLogs.length === 0 ? (
             <div className="empty-state" style={{ padding: '24px' }}>
               <div className="empty-state-icon">📋</div>
-              <p>No login events recorded yet.</p>
+              <p>No login events matching this filter.</p>
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ marginTop: '10px' }}
+                onClick={() => { setActiveStatFilter('all'); setRoleFilter('all'); }}
+              >
+                Reset Filter
+              </button>
             </div>
           ) : (
             <table>
@@ -179,10 +306,18 @@ export default function AuditLogs() {
                 <tr><th>#</th><th>Username</th><th>Role</th><th>Action</th><th>IP Address</th><th>Date &amp; Time</th></tr>
               </thead>
               <tbody>
-                {filteredLogs.map((l, i) => (
+                {displayedLogs.map((l, i) => (
                   <tr key={l.id || i}>
                     <td style={{ color: 'var(--text-muted)', fontSize: '.8rem' }}>{i + 1}</td>
-                    <td className="font-bold">{l.username}</td>
+                    <td className="font-bold">
+                      <span
+                        style={{ cursor: 'pointer', textDecoration: 'underline dotted' }}
+                        title="Click to filter by this user"
+                        onClick={() => setActiveStatFilter(l.username)}
+                      >
+                        {l.username}
+                      </span>
+                    </td>
                     <td>
                       <span className="badge" style={l.role === 'admin'
                         ? { background: '#e8d5f7', color: '#6b2fa0' }
@@ -200,6 +335,152 @@ export default function AuditLogs() {
           )}
         </div>
       </div>
+
+      {/* Unique Users Modal */}
+      {showUniqueModal && (
+        <div className="modal-overlay" style={{ display: 'flex' }} onClick={e => e.target.classList.contains('modal-overlay') && setShowUniqueModal(false)}>
+          <div className="modal" style={{ maxWidth: '680px' }}>
+            <div className="modal-header">
+              <div>
+                <h2 className="modal-title">👥 Unique Users ({uniqueUsersList.length})</h2>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+                  All accounts that have signed into the system with their login activity.
+                </p>
+              </div>
+              <button className="modal-close" onClick={() => setShowUniqueModal(false)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ padding: '16px 20px' }}>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Role</th>
+                      <th>Today</th>
+                      <th>Total Logins</th>
+                      <th>Last Seen</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {uniqueUsersList.map(u => (
+                      <tr key={u.username}>
+                        <td className="font-bold">
+                          <span style={{ fontSize: '1rem', marginRight: '6px' }}>👤</span>
+                          {u.username}
+                        </td>
+                        <td>
+                          <span className="badge" style={u.role === 'admin'
+                            ? { background: '#e8d5f7', color: '#6b2fa0' }
+                            : { background: '#e0f0ff', color: '#1a5276' }}>
+                            {u.role === 'admin' ? '🔑 Admin' : '👤 Staff'}
+                          </span>
+                        </td>
+                        <td>
+                          {u.todayLogins > 0 ? (
+                            <span style={{ color: 'var(--success)', fontWeight: 700, fontSize: '0.82rem' }}>
+                              🟢 {u.todayLogins}x today
+                            </span>
+                          ) : (
+                            <span style={{ color: '#aaa', fontSize: '0.82rem' }}>⚪ None</span>
+                          )}
+                        </td>
+                        <td>
+                          <strong style={{ color: 'var(--espresso)' }}>{u.totalLogins}</strong>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '4px' }}>times</span>
+                        </td>
+                        <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                          {formatDateTime(u.lastLogin)}
+                        </td>
+                        <td>
+                          <button
+                            className="btn btn-sm btn-secondary"
+                            onClick={() => {
+                              setActiveStatFilter(u.username);
+                              setShowUniqueModal(false);
+                            }}
+                            title={`Filter history for ${u.username}`}
+                          >
+                            Filter Logs
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="modal-actions" style={{ padding: '0 20px 20px' }}>
+              <button className="btn btn-secondary" onClick={() => setShowUniqueModal(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logins Today Modal */}
+      {showTodayModal && (
+        <div className="modal-overlay" style={{ display: 'flex' }} onClick={e => e.target.classList.contains('modal-overlay') && setShowTodayModal(false)}>
+          <div className="modal" style={{ maxWidth: '640px' }}>
+            <div className="modal-header">
+              <div>
+                <h2 className="modal-title">📅 Logins Today ({todayLogs.length})</h2>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+                  {todayLogs.length > 0 ? (
+                    <><strong>{uniqueUsersToday.length} unique user(s)</strong> logged in today: {uniqueUsersToday.join(', ')}</>
+                  ) : (
+                    'No logins recorded today.'
+                  )}
+                </p>
+              </div>
+              <button className="modal-close" onClick={() => setShowTodayModal(false)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ padding: '16px 20px' }}>
+              {todayLogs.length === 0 ? (
+                <div className="empty-state" style={{ padding: '30px' }}>
+                  <div className="empty-state-icon">☀️</div>
+                  <p>No accounts have logged in today yet.</p>
+                </div>
+              ) : (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Time</th>
+                        <th>IP Address</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {todayLogs.map((l, i) => (
+                        <tr key={l.id || i}>
+                          <td style={{ color: 'var(--text-muted)', fontSize: '.8rem' }}>{i + 1}</td>
+                          <td className="font-bold">{l.username}</td>
+                          <td>
+                            <span className="badge" style={l.role === 'admin'
+                              ? { background: '#e8d5f7', color: '#6b2fa0' }
+                              : { background: '#e0f0ff', color: '#1a5276' }}>
+                              {l.role === 'admin' ? '🔑 Admin' : '👤 Staff'}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                            {new Date(l.created_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          </td>
+                          <td style={{ fontFamily: 'monospace', fontSize: '.8rem' }}>{l.ip}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            <div className="modal-actions" style={{ padding: '0 20px 20px' }}>
+              <button className="btn btn-secondary" onClick={() => setShowTodayModal(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Account Modal */}
       {addAccOpen && (
@@ -271,6 +552,7 @@ export default function AuditLogs() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

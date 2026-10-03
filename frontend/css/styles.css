@@ -938,10 +938,25 @@ tbody tr:hover { background: #fdf8f2; }
 /* ── Audit Logs ─────────────────────────────────────────────────────────────── */
 .audit-stat-box {
   background: var(--cream);
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 14px 16px;
+  padding: 12px 14px;
   text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  user-select: none;
+}
+.audit-stat-box:hover {
+  background: #fdf3e3;
+  border-color: var(--tan-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(74, 44, 10, 0.12);
+}
+.audit-stat-box.active {
+  background: #ffffff;
+  border-color: var(--espresso);
+  box-shadow: 0 0 0 2px var(--espresso);
 }
 .audit-stat-num {
   font-family: 'Playfair Display', serif;
@@ -956,6 +971,17 @@ tbody tr:hover { background: #fdf8f2; }
   margin-top: 4px;
   text-transform: uppercase;
   letter-spacing: .04em;
+  font-weight: 600;
+}
+.audit-stat-hint {
+  font-size: .65rem;
+  color: var(--latte);
+  margin-top: 4px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
 }
 
 /* ── Comprehensive Responsive Media Queries ───────────────────────────────── */

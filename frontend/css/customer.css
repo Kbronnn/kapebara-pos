@@ -2493,31 +2493,28 @@ textarea:focus {
 .event-datetime-grid {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
-  gap: 12px !important;
-  align-items: flex-end !important;
+  gap: 14px !important;
+  align-items: start !important;
   width: 100% !important;
+  margin-bottom: 6px !important;
 }
 
 .event-datetime-grid .form-group,
 .event-datetime-group {
   display: flex !important;
   flex-direction: column !important;
-  justify-content: flex-end !important;
-  margin-bottom: 15px !important;
-  height: 100% !important;
+  justify-content: flex-start !important;
+  margin-bottom: 0 !important;
   min-width: 0 !important;
 }
 
 .event-datetime-grid label {
-  font-size: 0.82rem !important;
+  font-size: 0.85rem !important;
   font-weight: 600 !important;
   color: var(--text-dark) !important;
   margin-bottom: 6px !important;
-  line-height: 1.25 !important;
-  display: flex !important;
-  align-items: flex-end !important;
-  min-height: 2.3em !important;
-  white-space: normal !important;
+  display: block !important;
+  line-height: 1.2 !important;
 }
 
 #event-date,
@@ -2527,13 +2524,13 @@ textarea:focus {
   height: 42px !important;
   min-height: 42px !important;
   max-height: 42px !important;
-  padding: 8px 10px !important;
+  padding: 8px 12px !important;
   border: 1px solid var(--border) !important;
   border-radius: 8px !important;
   background-color: #ffffff !important;
   color: var(--text-dark) !important;
   font-family: inherit !important;
-  font-size: 0.85rem !important;
+  font-size: 0.88rem !important;
   box-sizing: border-box !important;
   margin: 0 !important;
   display: block !important;
@@ -2544,20 +2541,35 @@ textarea:focus {
   cursor: pointer;
 }
 
+.event-date-notice {
+  font-size: 0.78rem;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 7px 12px;
+  margin-top: 6px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.4;
+}
+
 @media (max-width: 480px) {
   .event-datetime-grid {
     gap: 8px !important;
   }
   .event-datetime-grid label {
-    font-size: 0.76rem !important;
-    min-height: 2.4em !important;
+    font-size: 0.78rem !important;
     margin-bottom: 4px !important;
   }
   #event-date,
   #event-time {
-    font-size: 0.8rem !important;
+    font-size: 0.82rem !important;
     padding: 6px 8px !important;
     height: 40px !important;
     min-height: 40px !important;
   }
-}
+}
+

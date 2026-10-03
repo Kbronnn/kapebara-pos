@@ -2659,9 +2659,6 @@ export default function CustomerApp() {
                                 setHostForm(f => ({ ...f, date: val }));
                               }}
                             />
-                            <small style={{ color: '#888', display: 'block', marginTop: '4px', fontSize: '0.78rem' }}>
-                              ⚠️ Same-day bookings not allowed. Earliest date: tomorrow.
-                            </small>
                           </div>
                           <div className="form-group event-datetime-group">
                             <label htmlFor="event-time">Preferred Start Time</label>
@@ -2671,6 +2668,10 @@ export default function CustomerApp() {
                               ))}
                             </select>
                           </div>
+                        </div>
+                        <div className="event-date-notice">
+                          <span>⚠️</span>
+                          <span><strong>Note:</strong> Same-day bookings are not allowed. Earliest available date is tomorrow.</span>
                         </div>
                         <div className="form-grid-2col">
                           <div className="form-group">
