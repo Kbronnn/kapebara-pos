@@ -2673,13 +2673,15 @@ export default function CustomerApp() {
                           <span>⚠️</span>
                           <span><strong>Note:</strong> Same-day bookings are not allowed. Earliest available date is tomorrow.</span>
                         </div>
-                        <div className="form-grid-2col">
+                        <div className="form-grid-2col host-contact-guests-grid">
                           <div className="form-group">
-                            <label htmlFor="event-phone">Contact Phone Number</label>
+                            <label htmlFor="event-phone" className="host-field-label">Contact Phone Number</label>
                             <input type="tel" id="event-phone" required placeholder="e.g. 0919-xxx-xxxx" value={hostForm.phone} onChange={e => setHostForm(f => ({ ...f, phone: formatPhoneNumber(e.target.value) }))} />
                           </div>
                           <div className="form-group">
-                            <label htmlFor="event-max" id="host-max-guests-label">Expected Guests (max {shopSettings.max_people_per_event})</label>
+                            <label htmlFor="event-max" id="host-max-guests-label" className="host-field-label">
+                              Expected Guests <span className="host-label-sub">(max {shopSettings.max_people_per_event})</span>
+                            </label>
                             <input type="number" id="event-max" min="1" max={shopSettings.max_people_per_event} value={hostForm.maxGuests} onChange={e => setHostForm(f => ({ ...f, maxGuests: e.target.value }))} />
                           </div>
                         </div>

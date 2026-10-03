@@ -2517,8 +2517,11 @@ textarea:focus {
   line-height: 1.2 !important;
 }
 
+#event-title,
 #event-date,
-#event-time {
+#event-time,
+#event-phone,
+#event-max {
   width: 100% !important;
   max-width: 100% !important;
   height: 42px !important;
@@ -2541,6 +2544,42 @@ textarea:focus {
   cursor: pointer;
 }
 
+/* ── Contact Phone & Expected Guests Grid Alignment ── */
+.host-contact-guests-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 14px !important;
+  align-items: start !important;
+  width: 100% !important;
+  margin-bottom: 15px !important;
+}
+
+.host-contact-guests-grid .form-group {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  margin-bottom: 0 !important;
+  min-width: 0 !important;
+}
+
+.host-field-label {
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  color: var(--text-dark) !important;
+  margin-bottom: 6px !important;
+  display: block !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.host-label-sub {
+  font-size: 0.72rem !important;
+  font-weight: 500 !important;
+  color: #7a6b5d !important;
+}
+
 .event-date-notice {
   font-size: 0.78rem;
   color: #92400e;
@@ -2557,19 +2596,25 @@ textarea:focus {
 }
 
 @media (max-width: 480px) {
-  .event-datetime-grid {
+  .event-datetime-grid,
+  .host-contact-guests-grid {
     gap: 8px !important;
   }
-  .event-datetime-grid label {
-    font-size: 0.78rem !important;
+  .event-datetime-grid label,
+  .host-field-label {
+    font-size: 0.76rem !important;
     margin-bottom: 4px !important;
   }
+  #event-title,
   #event-date,
-  #event-time {
+  #event-time,
+  #event-phone,
+  #event-max {
     font-size: 0.82rem !important;
     padding: 6px 8px !important;
     height: 40px !important;
     min-height: 40px !important;
   }
 }
+
 
