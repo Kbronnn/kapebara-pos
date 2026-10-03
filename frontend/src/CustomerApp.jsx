@@ -514,6 +514,20 @@ function ShopCalendar({ customerId }) {
           if (cell.isBooked) cls += ' cal-booked';
           if (cell.isBooked && selectedBookedDay?.dateKey === cell.dateKey) cls += ' cal-cell-selected';
 
+          // ── Buffer-day restriction: today blocked + ±2 days around any booked date ──
+          const cellDate = new Date(calYear, calMonth, cell.d);
+          const isTodayBlocked = cell.isToday;
+          const isBlockedByBuffer = !cell.isBooked && !cell.isPast && !cell.isToday &&
+            Object.keys(calendar).some(bookedKey => {
+              const [by, bm, bd] = bookedKey.split('-').map(Number);
+              const bookedDate = new Date(by, bm - 1, bd);
+              const diffMs = Math.abs(cellDate - bookedDate);
+              const diffDays = diffMs / (1000 * 60 * 60 * 24);
+              return diffDays > 0 && diffDays <= 2;
+            });
+          const isUnavailable = (isTodayBlocked || isBlockedByBuffer) && !cell.isPast;
+          if (isUnavailable && !cell.isBooked) cls += ' cal-buffer';
+
           const colIndex = idx % 7;
           const tooltipPositionClass = colIndex <= 1 ? 'cal-tooltip-left' : colIndex >= 5 ? 'cal-tooltip-right' : 'cal-tooltip-center';
 
@@ -549,6 +563,11 @@ function ShopCalendar({ customerId }) {
                     ))}
                   </div>
                 </>
+              )}
+              {isUnavailable && !cell.isBooked && (
+                <div className="cal-buffer-label">
+                  {isTodayBlocked ? 'Today' : 'Buffer'}
+                </div>
               )}
             </div>
           );
@@ -610,6 +629,7 @@ function ShopCalendar({ customerId }) {
         <span className="cal-legend-item"><span className="cal-legend-dot booked">●</span> Booked</span>
         <span className="cal-legend-item"><span className="cal-legend-dot today">●</span> Today</span>
         <span className="cal-legend-item"><span className="cal-legend-dot past">●</span> Past</span>
+        <span className="cal-legend-item"><span className="cal-legend-dot buffer">●</span> Unavailable</span>
       </div>
     </div>
   );
@@ -825,12 +845,26 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
     if (customerId || customerName) loadMyEvents();
   }, [customerId, customerName, loadMyEvents]);
 
-  const handleCancel = (eventId, eventTitle) => {
-    setCancelConfirm({ eventId, title: eventTitle });
+  // Check if event is within the 2-day cancellation cutoff
+  const isWithinCancelCutoff = (eventDate) => {
+    if (!eventDate) return false;
+    const evDate = new Date(eventDate.split('T')[0] + 'T00:00:00');
+    const today  = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffDays = Math.ceil((evDate - today) / (1000 * 60 * 60 * 24));
+    return diffDays <= 2;
+  };
+
+  const handleCancel = (eventId, eventTitle, eventDate) => {
+    if (isWithinCancelCutoff(eventDate)) {
+      setCancelConfirm({ eventId, title: eventTitle, blocked: true });
+    } else {
+      setCancelConfirm({ eventId, title: eventTitle, blocked: false });
+    }
   };
 
   const doCancel = async () => {
-    if (!cancelConfirm) return;
+    if (!cancelConfirm || cancelConfirm.blocked) return;
     const { eventId } = cancelConfirm;
     setCancellingId(eventId);
     setCancelConfirm(null);
@@ -924,7 +958,7 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
 
               {canCancel && (
                 <button
-                  onClick={() => handleCancel(ev.id, ev.title)}
+                  onClick={() => handleCancel(ev.id, ev.title, ev.date)}
                   disabled={cancellingId === ev.id}
                   style={{
                     background: '#fde8e8',
@@ -952,13 +986,24 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
       })}
     </div>
     <ConfirmModal
-      isOpen={!!cancelConfirm}
+      isOpen={!!cancelConfirm && !cancelConfirm?.blocked}
       title="Cancel Booking?"
       message={cancelConfirm ? `Are you sure you want to cancel your booking request for "${cancelConfirm.title}"? The event organizer will be notified.` : ''}
       confirmText="Yes, Cancel It"
       cancelText="Keep Booking"
       isDanger={true}
       onConfirm={doCancel}
+      onCancel={() => setCancelConfirm(null)}
+    />
+    {/* Cancellation cutoff notice modal */}
+    <ConfirmModal
+      isOpen={!!cancelConfirm?.blocked}
+      title="Cancellation Not Allowed"
+      message={`Cancellations are not permitted within 2 days of the event date. If you need assistance, please contact KapeBara staff directly.`}
+      confirmText="Understood"
+      cancelText=""
+      isDanger={false}
+      onConfirm={() => setCancelConfirm(null)}
       onCancel={() => setCancelConfirm(null)}
     />
   </>
@@ -1055,6 +1100,12 @@ export default function CustomerApp() {
   const [custMilk, setCustMilk] = useState('Whole');
   const [custIceCream, setCustIceCream] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [navScrolled, setNavScrolled] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => setNavScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   const [custDrinkAddon, setCustDrinkAddon] = useState('None');
   const [custAddons, setCustAddons] = useState([]);
 
@@ -1605,7 +1656,7 @@ export default function CustomerApp() {
       {/* LANDING VIEW */}
       {view === 'landing' && (
         <div id="landing-view">
-          <header className="landing-header">
+          <header className={`landing-header${navScrolled ? ' scrolled' : ''}`}>
             <div className="landing-brand">
               <img src={logoImg} alt="KapeBara Logo" className="landing-logo" />
               <span className="landing-name">KapeBara</span>
@@ -1700,37 +1751,21 @@ export default function CustomerApp() {
             </div>
           </section>
 
-          {/* Menu Section */}
+          {/* Menu Section — public shows Best Sellers only; full menu requires login */}
           <section id="menu" className="landing-section alt-bg">
             <div className="section-container">
               <h2 className="section-title">Our Menu</h2>
-              <div className="menu-highlights">
-                {[
-                  { id: 'all', label: '☕ Full Menu' },
-                  { id: 'bestsellers', label: '⭐ Best Sellers' },
-                  { id: 'special', label: '✨ Special Editions' },
-                ].map(h => (
-                  <div key={h.id} className={`menu-highlight-card ${menuFilter === h.id ? 'active' : ''}`} onClick={() => { setMenuFilter(h.id); setMenuCatFilter('All'); }}>
-                    {h.label}
-                  </div>
-                ))}
-              </div>
-              <div className="menu-cat-tabs" id="menu-cat-tabs">
-                {menuCategories.map(cat => (
-                  <button key={cat} className={`menu-cat-tab ${menuCatFilter === cat ? 'active' : ''}`} onClick={() => setMenuCatFilter(cat)}>{cat}</button>
-                ))}
-              </div>
+              <p style={{ textAlign: 'center', color: '#8c6b4e', fontSize: '0.92rem', marginTop: '-30px', marginBottom: '32px' }}>
+                ⭐ Showing our Best Sellers — <strong style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setView('auth'); setAuthMode('login'); }}>log in or register</strong> to browse the full menu & place an order!
+              </p>
               <div className="menu-products-grid" id="menu-products-grid">
-                {displayedProducts.length === 0 ? (
-                  <p style={{ color: '#999', textAlign: 'center', gridColumn: '1/-1', padding: '40px 0' }}>No items in this category right now.</p>
-                ) : displayedProducts.map(p => (
+                {menuProducts.filter(p => p.is_best_seller).length === 0 ? (
+                  <p style={{ color: '#999', textAlign: 'center', gridColumn: '1/-1', padding: '40px 0' }}>No best-sellers available right now.</p>
+                ) : menuProducts.filter(p => p.is_best_seller).map(p => (
                   <div key={p.id} className="menu-item-card">
-                    {(p.is_best_seller || p.is_special_edition) && (
-                      <div className="menu-badge-corner">
-                        {p.is_best_seller && <span className="menu-item-badge bestseller">⭐ Best Seller</span>}
-                        {p.is_special_edition && <span className="menu-item-badge special">✨ Special</span>}
-                      </div>
-                    )}
+                    <div className="menu-badge-corner">
+                      <span className="menu-item-badge bestseller">⭐ Best Seller</span>
+                    </div>
                     <div className="menu-item-emoji-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <ProductThumb product={p} size={64} />
                     </div>
@@ -1744,6 +1779,34 @@ export default function CustomerApp() {
                     </div>
                   </div>
                 ))}
+              </div>
+              {/* Login-gate prompt */}
+              <div style={{
+                marginTop: '36px',
+                background: 'linear-gradient(135deg, #4a3728 0%, #6b4f38 100%)',
+                borderRadius: '18px',
+                padding: '28px 32px',
+                textAlign: 'center',
+                color: '#fff',
+                boxShadow: '0 8px 24px rgba(74,55,40,0.25)'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '10px' }}>☕</div>
+                <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.4rem', margin: '0 0 8px', color: '#f1d6ab' }}>Want to see our full menu?</h3>
+                <p style={{ fontSize: '0.9rem', color: '#d4a373', margin: '0 0 20px', lineHeight: 1.6 }}>Log in or create a free account to explore all our drinks, food, and special editions — and place orders directly!</p>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => { setView('auth'); setAuthMode('login'); }}
+                    style={{ background: '#d4a373', color: '#fff', border: 'none', padding: '11px 28px', borderRadius: '50px', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                  >
+                    🔑 Log In
+                  </button>
+                  <button
+                    onClick={() => { setView('auth'); setAuthMode('register'); }}
+                    style={{ background: 'transparent', color: '#f1d6ab', border: '1.5px solid #f1d6ab', padding: '11px 28px', borderRadius: '50px', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                  >
+                    ✨ Register Free
+                  </button>
+                </div>
               </div>
             </div>
           </section>
@@ -2475,7 +2538,7 @@ export default function CustomerApp() {
                         border: '1.5px solid #f0d5a3',
                         borderRadius: '12px',
                         padding: '14px 16px',
-                        marginBottom: '20px',
+                        marginBottom: '12px',
                         display: 'flex',
                         gap: '12px',
                         alignItems: 'flex-start'
@@ -2483,6 +2546,38 @@ export default function CustomerApp() {
                         <span style={{ fontSize: '1.4rem', lineHeight: 1, flexShrink: 0 }}>📢</span>
                         <div style={{ fontSize: '0.84rem', color: '#6d4c13', lineHeight: 1.5 }}>
                           <strong>Booking Instructions:</strong> After booking, the owner/staff will review your booking request and will contact you through your given phone number regarding the approval or rejection of your event. Please wait for their announcement and confirmation. Thank you! ☕
+                        </div>
+                      </div>
+                      {/* Cancellation Policy Box */}
+                      <div style={{
+                        background: '#fef2f2',
+                        border: '1.5px solid #fca5a5',
+                        borderRadius: '12px',
+                        padding: '14px 16px',
+                        marginBottom: '12px',
+                        display: 'flex',
+                        gap: '12px',
+                        alignItems: 'flex-start'
+                      }}>
+                        <span style={{ fontSize: '1.4rem', lineHeight: 1, flexShrink: 0 }}>🚫</span>
+                        <div style={{ fontSize: '0.84rem', color: '#7f1d1d', lineHeight: 1.5 }}>
+                          <strong>Cancellation Policy:</strong> Cancellations are <strong>not allowed within 2 days</strong> of the event date. Please plan accordingly to avoid any inconvenience.
+                        </div>
+                      </div>
+                      {/* Reservation Fee Box */}
+                      <div style={{
+                        background: '#fffbeb',
+                        border: '1.5px solid #fcd34d',
+                        borderRadius: '12px',
+                        padding: '14px 16px',
+                        marginBottom: '20px',
+                        display: 'flex',
+                        gap: '12px',
+                        alignItems: 'flex-start'
+                      }}>
+                        <span style={{ fontSize: '1.4rem', lineHeight: 1, flexShrink: 0 }}>💰</span>
+                        <div style={{ fontSize: '0.84rem', color: '#78350f', lineHeight: 1.5 }}>
+                          <strong>Reservation Fee / Down Payment:</strong> A reservation fee may be required upon approval to secure your event slot. This ensures that preparation efforts are not wasted in case of last-minute cancellations. The admin will discuss the amount with you upon confirmation.
                         </div>
                       </div>
 

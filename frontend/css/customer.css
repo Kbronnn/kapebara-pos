@@ -824,6 +824,29 @@ textarea:focus {
 .cal-legend-dot.booked { color: #e8a0a0; }
 .cal-legend-dot.today  { color: #d4a373; }
 .cal-legend-dot.past   { color: #ccc;    }
+.cal-legend-dot.buffer { color: #b0c4de; }
+
+/* Buffer / unavailable calendar days */
+.cal-cell.cal-buffer {
+  background: #eef3f9;
+  border-color: #b0c4de;
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+.cal-buffer-label {
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: #5a7ea0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 2px;
+}
+
+/* Sticky navbar scroll-shadow */
+.landing-header.scrolled {
+  box-shadow: 0 4px 20px rgba(74, 55, 40, 0.15);
+  background: rgba(250, 247, 242, 0.97);
+}
 
 /* Calendar Header Controls */
 .cal-header-container {

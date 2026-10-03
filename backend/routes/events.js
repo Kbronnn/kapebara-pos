@@ -199,6 +199,19 @@ router.post('/:id/cancel', async (req, res) => {
       return res.status(403).json({ error: 'You can only cancel your own events' });
     }
 
+    // ── 2-day cancellation cutoff ──
+    const eventDate = event.date ? new Date(event.date.split('T')[0] + 'T00:00:00') : null;
+    if (eventDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const diffDays = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+      if (diffDays <= 2) {
+        return res.status(403).json({
+          error: 'Cancellations are not allowed within 2 days of the event date. Please contact KapeBara staff for assistance.'
+        });
+      }
+    }
+
     event.status = 'cancelled';
     event.approval_notified = true;
     event.updated_at = new Date();
