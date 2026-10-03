@@ -88,6 +88,133 @@ body {
   color: #d4a373;
 }
 
+/* ── Desktop Menu Dropdown ───────────────────────── */
+.nav-menu-dropdown-wrap {
+  position: relative;
+}
+.nav-menu-trigger {
+  color: #6b5a4a;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: color 0.3s;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.nav-menu-trigger:hover { color: #d4a373; }
+.nav-menu-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fffcf8;
+  border: 1.5px solid rgba(212,163,115,0.25);
+  border-radius: 16px;
+  padding: 14px;
+  min-width: 230px;
+  box-shadow: 0 12px 32px rgba(74,55,40,0.18);
+  z-index: 9999;
+  animation: fadeIn 0.15s ease;
+}
+.nav-menu-dropdown-wrap:hover .nav-menu-dropdown { display: block; }
+.nav-dropdown-section-title {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #d4a373;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #f0e6da;
+}
+.nav-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 6px;
+  border-radius: 8px;
+  transition: background 0.15s;
+  cursor: default;
+}
+.nav-dropdown-item:hover { background: #faf0e6; }
+.nav-dropdown-emoji { font-size: 1.1rem; flex-shrink: 0; }
+.nav-dropdown-name  { flex: 1; font-size: 0.85rem; color: #4a3728; font-weight: 500; }
+.nav-dropdown-price { font-size: 0.8rem; font-weight: 700; color: #8c6b4e; }
+.nav-dropdown-divider {
+  height: 1px;
+  background: #f0e6da;
+  margin: 8px 0;
+}
+.nav-dropdown-login {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #d4a373;
+  text-align: center;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.nav-dropdown-login:hover { background: #faebd6; color: #a07040; }
+
+/* ── Mobile Drawer Menu Expandable ───────────────── */
+.mobile-nav-menu-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-radius: 12px;
+  color: #4a3728;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.mobile-nav-menu-toggle:hover { background: rgba(212,163,115,0.12); color: #d4a373; }
+.mobile-menu-chevron { font-size: 0.75rem; color: #8c6b4e; }
+.mobile-menu-dropdown {
+  background: #faf5ee;
+  border-radius: 12px;
+  padding: 12px;
+  margin: 0 4px 4px;
+  border: 1px solid rgba(212,163,115,0.2);
+}
+.mobile-menu-dropdown-title {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #d4a373;
+  margin-bottom: 8px;
+}
+.mobile-menu-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 4px;
+  font-size: 0.88rem;
+  color: #4a3728;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+.mobile-menu-dropdown-item:last-of-type { border-bottom: none; }
+.mobile-menu-login-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px;
+  background: #4a3728;
+  color: #f1d6ab;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.mobile-menu-login-btn:hover { background: #6b4f38; }
+
 .landing-login-btn {
   background: #d4a373;
   color: #fff;

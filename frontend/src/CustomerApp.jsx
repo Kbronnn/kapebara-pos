@@ -845,7 +845,7 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
     if (customerId || customerName) loadMyEvents();
   }, [customerId, customerName, loadMyEvents]);
 
-  // Check if event is within the 2-day cancellation cutoff
+  // 2-day cancellation cutoff helper
   const isWithinCancelCutoff = (eventDate) => {
     if (!eventDate) return false;
     const evDate = new Date(eventDate.split('T')[0] + 'T00:00:00');
@@ -855,16 +855,12 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
     return diffDays <= 2;
   };
 
-  const handleCancel = (eventId, eventTitle, eventDate) => {
-    if (isWithinCancelCutoff(eventDate)) {
-      setCancelConfirm({ eventId, title: eventTitle, blocked: true });
-    } else {
-      setCancelConfirm({ eventId, title: eventTitle, blocked: false });
-    }
+  const handleCancel = (eventId, eventTitle) => {
+    setCancelConfirm({ eventId, title: eventTitle });
   };
 
   const doCancel = async () => {
-    if (!cancelConfirm || cancelConfirm.blocked) return;
+    if (!cancelConfirm) return;
     const { eventId } = cancelConfirm;
     setCancellingId(eventId);
     setCancelConfirm(null);
@@ -957,23 +953,41 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
               </div>
 
               {canCancel && (
-                <button
-                  onClick={() => handleCancel(ev.id, ev.title, ev.date)}
-                  disabled={cancellingId === ev.id}
-                  style={{
-                    background: '#fde8e8',
-                    color: '#c0392b',
-                    border: '1px solid #f5c6c6',
-                    borderRadius: '8px',
-                    padding: '5px 12px',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  {cancellingId === ev.id ? 'Cancelling…' : '✕ Cancel Booking'}
-                </button>
+                isWithinCancelCutoff(ev.date)
+                  ? (
+                    <div style={{
+                      fontSize: '0.72rem',
+                      color: '#a33',
+                      background: '#fef2f2',
+                      padding: '5px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid #fca5a5',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      🚫 Cancellation locked — within 2 days of event
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleCancel(ev.id, ev.title)}
+                      disabled={cancellingId === ev.id}
+                      style={{
+                        background: '#fde8e8',
+                        color: '#c0392b',
+                        border: '1px solid #f5c6c6',
+                        borderRadius: '8px',
+                        padding: '5px 12px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {cancellingId === ev.id ? 'Cancelling…' : '✕ Cancel Booking'}
+                    </button>
+                  )
               )}
             </div>
             {ev.description && (
@@ -986,24 +1000,13 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
       })}
     </div>
     <ConfirmModal
-      isOpen={!!cancelConfirm && !cancelConfirm?.blocked}
+      isOpen={!!cancelConfirm}
       title="Cancel Booking?"
       message={cancelConfirm ? `Are you sure you want to cancel your booking request for "${cancelConfirm.title}"? The event organizer will be notified.` : ''}
       confirmText="Yes, Cancel It"
       cancelText="Keep Booking"
       isDanger={true}
       onConfirm={doCancel}
-      onCancel={() => setCancelConfirm(null)}
-    />
-    {/* Cancellation cutoff notice modal */}
-    <ConfirmModal
-      isOpen={!!cancelConfirm?.blocked}
-      title="Cancellation Not Allowed"
-      message={`Cancellations are not permitted within 2 days of the event date. If you need assistance, please contact KapeBara staff directly.`}
-      confirmText="Understood"
-      cancelText=""
-      isDanger={false}
-      onConfirm={() => setCancelConfirm(null)}
       onCancel={() => setCancelConfirm(null)}
     />
   </>
@@ -1100,6 +1103,7 @@ export default function CustomerApp() {
   const [custMilk, setCustMilk] = useState('Whole');
   const [custIceCream, setCustIceCream] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [navScrolled, setNavScrolled] = useState(false);
   useEffect(() => {
     const handleScroll = () => setNavScrolled(window.scrollY > 10);
@@ -1666,7 +1670,24 @@ export default function CustomerApp() {
               <a href="#landing-view">Home</a>
               <a href="#about-us">About Us</a>
               <a href="#services">Services</a>
-              <a href="#menu">Menu</a>
+              {/* Menu with dropdown */}
+              <div className="nav-menu-dropdown-wrap">
+                <a href="#menu" className="nav-menu-trigger">Menu ▾</a>
+                <div className="nav-menu-dropdown">
+                  <div className="nav-dropdown-section-title">⭐ Best Sellers</div>
+                  {menuProducts.filter(p => p.is_best_seller).slice(0, 5).map(p => (
+                    <div key={p.id} className="nav-dropdown-item">
+                      <span className="nav-dropdown-emoji">{p.emoji || '☕'}</span>
+                      <span className="nav-dropdown-name">{p.name}</span>
+                      <span className="nav-dropdown-price">₱{parseFloat(p.price).toFixed(0)}</span>
+                    </div>
+                  ))}
+                  <div className="nav-dropdown-divider" />
+                  <div className="nav-dropdown-login" onClick={() => { setView('auth'); setAuthMode('login'); }}>
+                    🔑 Login to see full menu →
+                  </div>
+                </div>
+              </div>
               <a href="#events-landing">Events</a>
               <a href="#rate-us">Rate Us</a>
               <a href="#contacts">Contacts</a>
@@ -1691,7 +1712,32 @@ export default function CustomerApp() {
                 <a href="#landing-view" onClick={() => setMobileNavOpen(false)}>🏠 Home</a>
                 <a href="#about-us" onClick={() => setMobileNavOpen(false)}>📖 About Us</a>
                 <a href="#services" onClick={() => setMobileNavOpen(false)}>☕ Services</a>
-                <a href="#menu" onClick={() => setMobileNavOpen(false)}>🍽️ Menu</a>
+                {/* Menu expandable item in mobile drawer */}
+                <div
+                  className="mobile-nav-menu-toggle"
+                  onClick={() => setMobileMenuOpen(prev => !prev)}
+                >
+                  <span>🍽️ Menu</span>
+                  <span className="mobile-menu-chevron">{mobileMenuOpen ? '▴' : '▾'}</span>
+                </div>
+                {mobileMenuOpen && (
+                  <div className="mobile-menu-dropdown">
+                    <div className="mobile-menu-dropdown-title">⭐ Best Sellers</div>
+                    {menuProducts.filter(p => p.is_best_seller).slice(0, 6).map(p => (
+                      <div key={p.id} className="mobile-menu-dropdown-item">
+                        <span>{p.emoji || '☕'}</span>
+                        <span style={{ flex: 1 }}>{p.name}</span>
+                        <span style={{ fontWeight: 700, color: '#8c6b4e' }}>₱{parseFloat(p.price).toFixed(0)}</span>
+                      </div>
+                    ))}
+                    <button
+                      className="mobile-menu-login-btn"
+                      onClick={() => { setView('auth'); setAuthMode('login'); setMobileNavOpen(false); }}
+                    >
+                      🔑 Login to see full menu
+                    </button>
+                  </div>
+                )}
                 <a href="#events-landing" onClick={() => setMobileNavOpen(false)}>📅 Events</a>
                 <a href="#rate-us" onClick={() => setMobileNavOpen(false)}>⭐ Rate Us</a>
                 <a href="#contacts" onClick={() => setMobileNavOpen(false)}>📍 Contacts</a>
