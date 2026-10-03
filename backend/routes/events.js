@@ -246,13 +246,15 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'Title, date, and hostName are required' });
 
   try {
-    // 0. Past date check
+    // 0. Past and same-day date check (customers cannot book today or past dates)
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const reqDate = (date || '').split('T')[0];
-    if (reqDate < todayStr) {
+    if (req.body.type !== 'shop' && reqDate <= todayStr) {
       return res.status(400).json({
-        error: 'Cannot book an event on a past date. Please choose today or a future date.'
+        error: reqDate === todayStr
+          ? 'Same-day bookings are not allowed. Events must be scheduled at least 1 day in advance (starting tomorrow).'
+          : 'Cannot book an event on a past date.'
       });
     }
 

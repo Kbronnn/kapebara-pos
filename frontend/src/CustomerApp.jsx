@@ -41,6 +41,12 @@ function getTodayDateString() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function getTomorrowDateString() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function formatTime12(time24) {
   if (!time24) return '';
   const [h, m] = time24.split(':').map(Number);
@@ -1396,9 +1402,9 @@ export default function CustomerApp() {
     e.preventDefault();
     setHostSubmitting(true); setHostMsg({ text: '', color: '' });
     try {
-      const todayStr = getTodayDateString();
-      if (hostForm.date && hostForm.date < todayStr) {
-        setHostMsg({ text: '❌ You cannot book an event on a past date. Please choose today or a future date.', color: '#c0392b' });
+      const minDateStr = getTomorrowDateString();
+      if (hostForm.date && hostForm.date < minDateStr) {
+        setHostMsg({ text: '❌ Same-day and past bookings are not allowed. Events must be booked at least 1 day in advance (starting tomorrow).', color: '#c0392b' });
         setHostSubmitting(false);
         return;
       }
@@ -2638,14 +2644,14 @@ export default function CustomerApp() {
                             <input
                               type="date"
                               id="event-date"
-                              min={getTodayDateString()}
+                              min={getTomorrowDateString()}
                               required
                               value={hostForm.date}
                               onChange={e => {
                                 const val = e.target.value;
-                                const minD = getTodayDateString();
+                                const minD = getTomorrowDateString();
                                 if (val && val < minD) {
-                                  setHostMsg({ text: '❌ Past dates are not allowed. Please choose today or a future date.', color: '#c0392b' });
+                                  setHostMsg({ text: '❌ Same-day and past bookings are not allowed. Please choose tomorrow or a future date.', color: '#c0392b' });
                                   setHostForm(f => ({ ...f, date: '' }));
                                   return;
                                 }
@@ -2653,6 +2659,9 @@ export default function CustomerApp() {
                                 setHostForm(f => ({ ...f, date: val }));
                               }}
                             />
+                            <small style={{ color: '#888', display: 'block', marginTop: '4px', fontSize: '0.78rem' }}>
+                              ⚠️ Same-day bookings not allowed. Earliest date: tomorrow.
+                            </small>
                           </div>
                           <div className="form-group event-datetime-group">
                             <label htmlFor="event-time">Preferred Start Time</label>

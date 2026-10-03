@@ -636,11 +636,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const max_participants = Math.min(shopSettings.max_people_per_event || 30, Math.max(1, max_val));
     const btn            = hostEventForm.querySelector('button[type="submit"]');
 
-    const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    if (date && date < todayStr) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+    if (date && date < tomorrowStr) {
       formMessage.style.color = '#c0392b';
-      formMessage.textContent = '❌ Cannot book an event on a past date. Please choose today or a future date.';
+      formMessage.textContent = '❌ Same-day and past bookings are not allowed. Events must be scheduled at least 1 day in advance (starting tomorrow).';
       return;
     }
 
