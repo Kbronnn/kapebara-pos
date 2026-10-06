@@ -348,7 +348,8 @@ router.post('/', async (req, res) => {
     payment_ref = '', reference_number = '',
     notes = '', table_number = '', customer_id = null,
     source = 'pos', customer_name = '',
-    cashier_name = '', pos_number = '', register_number = '', device_number = ''
+    cashier_name = '', pos_number = '', register_number = '', device_number = '',
+    amount_tendered = 0, change_due = 0
   } = req.body;
 
   if (!Array.isArray(items) || items.length === 0)
@@ -435,7 +436,9 @@ router.post('/', async (req, res) => {
       customer_unique_id: finalCustUniqueId || '',
       source, status: orderStatus,
       notes, items: resolvedItems,
-      cashier_name, pos_number, register_number, device_number
+      cashier_name, pos_number, register_number, device_number,
+      amount_tendered: Number(amount_tendered) || 0,
+      change_due: Number(change_due) || 0
     });
 
     res.status(201).json({
@@ -444,7 +447,9 @@ router.post('/', async (req, res) => {
       order_number,
       subtotal,
       discount,
-      total
+      total,
+      amount_tendered: Number(amount_tendered) || 0,
+      change_due: Number(change_due) || 0
     });
   } catch (err) {
     res.status(400).json({ error: err.message });

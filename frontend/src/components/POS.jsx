@@ -25,6 +25,7 @@ export default function POS() {
   // Payment method & reference
   const [paymentMethod, setPaymentMethod] = useState('Cash'); // 'Cash' | 'GCash' | 'Bank'
   const [paymentRef, setPaymentRef] = useState('');
+  const [amountTendered, setAmountTendered] = useState(''); // for Cash change calculation
 
   // Customization modal states
   const [custModalOpen, setCustModalOpen] = useState(false);
@@ -234,6 +235,7 @@ export default function POS() {
     setActivePortalOrderId(null);
     setPaymentMethod('Cash');
     setPaymentRef('');
+    setAmountTendered('');
   };
 
   const handleCheckout = async () => {
@@ -250,6 +252,15 @@ export default function POS() {
     const finalTotal = Math.max(0, subtotal - discount);
     const cashierName = selectedCashier || sessionStorage.getItem('adminUsername') || 'Staff';
     const refNumber = paymentRef.trim();
+    const tenderedNum = paymentMethod === 'Cash' && amountTendered !== '' ? parseFloat(amountTendered) : null;
+    const changeDue = tenderedNum !== null ? Math.max(0, tenderedNum - finalTotal) : null;
+
+    // Validate: if cash tendered is entered, it must be >= total
+    if (paymentMethod === 'Cash' && amountTendered !== '' && parseFloat(amountTendered) < finalTotal) {
+      toast('Amount tendered is less than the total due.', 'warning');
+      setCheckingOut(false);
+      return;
+    }
 
     try {
       const result = await API.post('/orders', {
@@ -267,6 +278,7 @@ export default function POS() {
         pos_number: POS_NUMBER,
         register_number: REGISTER_NUMBER,
         device_number: DEVICE_NUMBER,
+        ...(tenderedNum !== null ? { amount_tendered: tenderedNum, change_due: changeDue } : {}),
       });
 
       // Mark portal order as completed if checking out a loaded portal order
@@ -309,6 +321,8 @@ export default function POS() {
         posNumber: POS_NUMBER,
         registerNumber: REGISTER_NUMBER,
         deviceNumber: DEVICE_NUMBER,
+        amountTendered: tenderedNum,
+        changeDue,
       });
 
       setReceiptModalOpen(true);
@@ -321,6 +335,7 @@ export default function POS() {
       setDiscount(0);
       setPaymentMethod('Cash');
       setPaymentRef('');
+      setAmountTendered('');
       setCustomerPreview({ text: '', type: '', data: null });
     } catch (err) {
       toast(err.message, 'error');
@@ -360,6 +375,7 @@ export default function POS() {
         <div class="logo-row">
           <h2>☕ KapeBara</h2>
           <p>Coffee Shop · Official Receipt</p>
+          <p style="margin-top:2px;font-size:0.7rem;color:#777">TIN: 271-082-724-00000</p>
         </div>
         <hr class="divider"/>
         <div class="info-row"><span>Order #</span><span>${receiptData.order_number || '—'}</span></div>
@@ -397,6 +413,10 @@ export default function POS() {
           <div class="row"><span>Subtotal</span><span>${formatPHP(receiptData.subtotal || 0)}</span></div>
           ${(receiptData.discount || 0) > 0 ? `<div class="row"><span>Discount</span><span>-${formatPHP(receiptData.discount)}</span></div>` : ''}
           <div class="row grand"><span>TOTAL</span><span>${formatPHP(receiptData.total || 0)}</span></div>
+          ${receiptData.paymentMethod === 'Cash' && receiptData.amountTendered != null ? `
+            <div class="row" style="margin-top:6px;border-top:1px dashed #ccc;padding-top:6px"><span>Cash Received</span><span>${formatPHP(receiptData.amountTendered)}</span></div>
+            <div class="row" style="font-weight:bold;color:#1a6e1a"><span>Change Due</span><span>${formatPHP(receiptData.changeDue || 0)}</span></div>
+          ` : ''}
         </div>
         <hr class="divider"/>
         <div class="footer">
@@ -730,6 +750,83 @@ export default function POS() {
               </div>
             </div>
 
+            {/* Cash Tendered & Change Calculation (Cash payments only) */}
+            {paymentMethod === 'Cash' && (
+              <div className="pos-meta-row" style={{ marginTop: '8px', background: 'rgba(74,44,10,0.05)', border: '1.5px solid var(--tan-dark)', borderRadius: '10px', padding: '10px 12px' }}>
+                <div style={{ flex: 1 }}>
+                  <label className="pos-meta-label" style={{ color: 'var(--espresso)', fontWeight: 700 }}>
+                    💵 Cash Received from Customer
+                  </label>
+                  <input
+                    type="number"
+                    className="pos-meta-input"
+                    placeholder="Enter amount handed over"
+                    value={amountTendered}
+                    onChange={(e) => setAmountTendered(e.target.value)}
+                    min="0"
+                    step="1"
+                    style={{ width: '100%', marginTop: '4px', fontWeight: 700, fontSize: '1rem' }}
+                  />
+                  {/* Quick bill buttons */}
+                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginTop: '6px' }}>
+                    {[100, 200, 500, 1000].map(bill => {
+                      const subtotal = cart.reduce((s, i) => s + (i.finalPrice || i.price) * i.qty, 0);
+                      const total = Math.max(0, subtotal - discount);
+                      return (
+                        <button
+                          key={bill}
+                          type="button"
+                          onClick={() => setAmountTendered(String(bill))}
+                          style={{
+                            padding: '4px 10px', borderRadius: '8px', border: '1.5px solid var(--border)',
+                            background: '#fff', color: 'var(--espresso)', fontWeight: 600,
+                            fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.12s'
+                          }}
+                        >
+                          ₱{bill}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const subtotal = cart.reduce((s, i) => s + (i.finalPrice || i.price) * i.qty, 0);
+                        const total = Math.max(0, subtotal - discount);
+                        setAmountTendered(String(total));
+                      }}
+                      style={{
+                        padding: '4px 10px', borderRadius: '8px', border: '1.5px solid var(--tan-dark)',
+                        background: 'var(--tan-dark)', color: '#fff', fontWeight: 700,
+                        fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.12s'
+                      }}
+                    >
+                      Exact
+                    </button>
+                  </div>
+                  {/* Change display */}
+                  {amountTendered !== '' && (() => {
+                    const subtotal = cart.reduce((s, i) => s + (i.finalPrice || i.price) * i.qty, 0);
+                    const total = Math.max(0, subtotal - discount);
+                    const tendered = parseFloat(amountTendered) || 0;
+                    const change = tendered - total;
+                    return (
+                      <div style={{
+                        marginTop: '8px', padding: '8px 12px', borderRadius: '8px',
+                        background: change >= 0 ? '#e8f5e9' : '#fde8e8',
+                        border: `1.5px solid ${change >= 0 ? '#a5d6a7' : '#f5c6c6'}`,
+                        fontWeight: 700, fontSize: '0.95rem',
+                        color: change >= 0 ? '#1b5e20' : '#c0392b',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                      }}>
+                        <span>{change >= 0 ? '💚 Change Due' : '⚠️ Underpaid'}</span>
+                        <span>{change >= 0 ? formatPHP(change) : `Short by ${formatPHP(Math.abs(change))}`}</span>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+
             {/* Reference Number for GCash / Bank */}
             {(paymentMethod === 'GCash' || paymentMethod === 'Bank') && (
               <div className="pos-meta-row" style={{ marginTop: '8px', background: 'rgba(74,44,10,0.05)', border: '1.5px solid var(--tan-dark)', borderRadius: '10px', padding: '10px 12px' }}>
@@ -779,9 +876,6 @@ export default function POS() {
                       style={{ flex: 1, fontWeight: 600, fontSize: '0.88rem' }}
                     />
                   )}
-                </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-light)', marginTop: '2px' }}>
-                  📟 {POS_NUMBER} · 🖥️ {REGISTER_NUMBER} · 📱 {DEVICE_NUMBER}
                 </div>
               </div>
             </div>
@@ -948,6 +1042,7 @@ export default function POS() {
               <div className="receipt">
                 <div className="receipt-header">
                   <div className="receipt-brand">☕ KapeBara</div>
+                  <div className="receipt-sub" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '1px' }}>TIN: 271-082-724-00000</div>
                   <div className="receipt-sub" style={{ fontSize: '1.1rem', fontWeight: 800, letterSpacing: '0.05em' }}>{receiptData.order_number}</div>
                   {receiptData.tableNum && (
                     <div className="receipt-sub" style={{ fontSize: '0.9rem', fontWeight: 700 }}>
@@ -1000,6 +1095,16 @@ export default function POS() {
                     <span>Reference #</span>
                     <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{receiptData.paymentRef}</span>
                   </div>
+                )}
+                {receiptData.paymentMethod === 'Cash' && receiptData.amountTendered != null && (
+                  <>
+                    <div className="receipt-total-row" style={{ paddingTop: '6px', borderTop: '1px dashed rgba(74,44,10,0.2)', marginTop: '6px' }}>
+                      <span>Cash Received</span><span>{formatPHP(receiptData.amountTendered)}</span>
+                    </div>
+                    <div className="receipt-total-row" style={{ fontWeight: 800, color: '#1b5e20', fontSize: '1rem' }}>
+                      <span>Change Due</span><span>{formatPHP(receiptData.changeDue || 0)}</span>
+                    </div>
+                  </>
                 )}
                 {receiptData.pointsInfo && (
                   <div className="receipt-points">

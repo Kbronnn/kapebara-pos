@@ -76,6 +76,8 @@ const orderSchema = new mongoose.Schema({
   pos_number:         { type: String, default: '' },
   register_number:    { type: String, default: '' },
   device_number:      { type: String, default: '' },
+  amount_tendered:    { type: Number, default: 0 },
+  change_due:         { type: Number, default: 0 },
   items:              [orderItemSchema],
   created_at:         { type: Date, default: Date.now }
 }, jsonOpts);
@@ -107,6 +109,10 @@ const eventSchema = new mongoose.Schema({
   participant_names:   [{ type: String }],
   status:              { type: String, default: 'upcoming' },
   approval_notified:   { type: Boolean, default: false },
+  cancellation_reason: { type: String, default: '' },
+  cancellation_requested_at: { type: Date, default: null },
+  cancellation_admin_note:   { type: String, default: '' },
+  previous_status:     { type: String, default: '' },
   participants:        [{ type: mongoose.Schema.Types.ObjectId, ref: 'Customer' }],
   customer_id:         { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', default: null },
   created_at:          { type: Date, default: Date.now },

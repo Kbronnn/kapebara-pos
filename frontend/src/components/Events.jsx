@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { API, toast } from '../api';
 
 const STATUS_COLORS = {
-  pending_approval: { bg: '#fff3cd', color: '#856404' },
-  approved:         { bg: '#d4edda', color: '#155724' },
-  upcoming:         { bg: '#d4edda', color: '#155724' },
-  rejected:         { bg: '#f8d7da', color: '#721c24' },
-  cancelled:        { bg: '#f1f2f6', color: '#747d8c' },
+  pending_approval:     { bg: '#fff3cd', color: '#856404' },
+  cancellation_pending: { bg: '#fee2e2', color: '#b91c1c' },
+  approved:             { bg: '#d4edda', color: '#155724' },
+  upcoming:             { bg: '#d4edda', color: '#155724' },
+  rejected:             { bg: '#f8d7da', color: '#721c24' },
+  cancelled:            { bg: '#f1f2f6', color: '#747d8c' },
 };
 
 function formatTime12(timeStr) {
@@ -84,6 +85,12 @@ export default function Events() {
       } else if (action === 'reject') {
         await API.patch(`/events/${id}/status`, { status: 'rejected' });
         toast('Event rejected. Customer notified.', 'warning');
+      } else if (action === 'approve_cancellation') {
+        await API.post(`/events/${id}/cancellation/approve`);
+        toast('Cancellation approved! Event is now cancelled.', 'success');
+      } else if (action === 'reject_cancellation') {
+        await API.post(`/events/${id}/cancellation/reject`);
+        toast('Cancellation declined. Event remains active.', 'warning');
       } else if (action === 'delete') {
         await API.delete(`/events/${id}`);
         toast('Event removed.', 'warning');
@@ -141,9 +148,10 @@ export default function Events() {
   };
 
   const todayStr = getTodayStr();
-  const pending  = events.filter(e => e.status === 'pending_approval');
-  const approved = events.filter(e => (e.status === 'approved' || e.status === 'upcoming') && (e.date ? e.date.split('T')[0] : '') >= todayStr);
-  const past     = events.filter(e => e.status === 'rejected' || e.status === 'cancelled' || ((e.status === 'approved' || e.status === 'upcoming') && (e.date ? e.date.split('T')[0] : '') < todayStr));
+  const cancelRequests = events.filter(e => e.status === 'cancellation_pending');
+  const pending        = events.filter(e => e.status === 'pending_approval');
+  const approved       = events.filter(e => (e.status === 'approved' || e.status === 'upcoming') && (e.date ? e.date.split('T')[0] : '') >= todayStr);
+  const past           = events.filter(e => e.status === 'rejected' || e.status === 'cancelled' || ((e.status === 'approved' || e.status === 'upcoming') && (e.date ? e.date.split('T')[0] : '') < todayStr));
 
   // Sort helper: upcoming (present → future) first (closest to present first), then past (most recent past → oldest)
   const sortByDate = (arr) => {
@@ -166,7 +174,12 @@ export default function Events() {
     return [...upcoming, ...pastArr];
   };
 
-  const displayed = sortByDate(filter === 'pending' ? pending : filter === 'approved' ? approved : filter === 'past' ? past : events);
+  const displayed = sortByDate(
+    filter === 'cancellations' ? cancelRequests :
+    filter === 'pending' ? pending :
+    filter === 'approved' ? approved :
+    filter === 'past' ? past : events
+  );
 
   return (
     <div>
@@ -175,14 +188,16 @@ export default function Events() {
         <div className="period-tabs" style={{ margin: 0 }}>
           {[
             { key: 'all', label: `All Events (${events.length})` },
+            { key: 'cancellations', label: `⚠️ Cancel Requests (${cancelRequests.length})`, alert: cancelRequests.length > 0 },
             { key: 'pending', label: `⏳ Pending (${pending.length})` },
             { key: 'approved', label: `✅ Approved (${approved.length})` },
             { key: 'past', label: `🗓 Past / Inactive (${past.length})` },
-          ].map(({ key, label }) => (
+          ].map(({ key, label, alert }) => (
             <button
               key={key}
               className={`period-tab ${filter === key ? 'active' : ''}`}
               onClick={() => setFilter(key)}
+              style={alert ? { fontWeight: 800, color: filter === key ? undefined : '#b91c1c' } : undefined}
             >
               {label}
             </button>
@@ -227,14 +242,37 @@ export default function Events() {
                     ? new Date(dateStr + 'T00:00:00').toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
                     : '—';
                   const sc = STATUS_COLORS[e.status] || { bg: '#e2e3e5', color: '#383d41' };
+                  const isCancelPending = e.status === 'cancellation_pending';
                   const isPending = e.status === 'pending_approval';
                   const isApproved = e.status === 'approved' || e.status === 'upcoming';
                   const regCount = (e.participants && e.participants.length) || (e.participant_names && e.participant_names.length) || 0;
                   const regNames = e.participant_names && e.participant_names.length ? `Registered (${e.participant_names.length}): ${e.participant_names.join(', ')}` : `${regCount} registered`;
 
                   return (
-                    <tr key={e.id}>
-                      <td className="font-bold" style={{ maxWidth: '160px' }}>{e.title || '—'}</td>
+                    <tr key={e.id} style={isCancelPending ? { background: '#fff5f5' } : undefined}>
+                      <td className="font-bold" style={{ maxWidth: '200px' }}>
+                        <div>{e.title || '—'}</div>
+                        {isCancelPending && e.cancellation_reason && (
+                          <div style={{
+                            marginTop: '6px',
+                            padding: '6px 10px',
+                            background: '#fef2f2',
+                            border: '1px solid #fecaca',
+                            borderRadius: '6px',
+                            fontSize: '0.74rem',
+                            color: '#991b1b',
+                            fontWeight: 500,
+                            lineHeight: 1.3
+                          }}>
+                            <strong>Reason:</strong> "{e.cancellation_reason}"
+                          </div>
+                        )}
+                        {!isCancelPending && e.status === 'cancelled' && e.cancellation_reason && (
+                          <div style={{ marginTop: '4px', fontSize: '0.72rem', color: '#777', fontStyle: 'italic' }}>
+                            Reason: "{e.cancellation_reason}"
+                          </div>
+                        )}
+                      </td>
                       <td>{e.host_name || '—'}</td>
                       <td style={{ fontSize: '0.82rem' }}>{e.phone || '—'}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>{friendly}</td>
@@ -251,10 +289,30 @@ export default function Events() {
                       </td>
                       <td>
                         <span style={{ background: sc.bg, color: sc.color, padding: '3px 8px', borderRadius: '12px', fontSize: '0.78rem', fontWeight: 700 }}>
-                          {e.status.replace('_', ' ').toUpperCase()}
+                          {isCancelPending ? 'CANCEL REQUESTED' : e.status.replace('_', ' ').toUpperCase()}
                         </span>
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}>
+                        {isCancelPending && (
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <button
+                              className="btn btn-sm"
+                              style={{ background: '#dc2626', color: '#fff', border: 'none', padding: '4px 10px', fontSize: '0.75rem', fontWeight: 700 }}
+                              onClick={() => handleAction(e.id, 'approve_cancellation')}
+                              title="Approve cancellation and cancel this event"
+                            >
+                              ✓ Approve Cancel
+                            </button>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                              onClick={() => handleAction(e.id, 'reject_cancellation')}
+                              title="Decline cancellation and keep event active"
+                            >
+                              ✕ Decline
+                            </button>
+                          </div>
+                        )}
                         {isPending && (
                           <>
                             <button className="btn btn-primary btn-sm" style={{ marginRight: '4px' }} onClick={() => handleAction(e.id, 'approve')}>✓ Approve</button>
@@ -264,7 +322,7 @@ export default function Events() {
                         {isApproved && (
                           <button className="btn btn-secondary btn-sm" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }} onClick={() => handleAction(e.id, 'delete')}>🗑 Remove</button>
                         )}
-                        {!isPending && !isApproved && (
+                        {!isCancelPending && !isPending && !isApproved && (
                           <button className="btn btn-secondary btn-sm" onClick={() => handleAction(e.id, 'delete')}>🗑 Delete</button>
                         )}
                       </td>

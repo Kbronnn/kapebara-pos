@@ -228,10 +228,188 @@ function ConfirmModal({ isOpen, title, message, confirmText = 'Confirm', cancelT
   );
 }
 
+// ── Custom Cancel Event Reason Modal (Requires Customer to provide reason) ──
+function CancelReasonModal({ isOpen, title, onConfirm, onCancel, loading = false }) {
+  const [reason, setReason] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setReason('');
+      setError('');
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!reason.trim()) {
+      setError('Please provide a reason for cancelling this event.');
+      return;
+    }
+    setError('');
+    onConfirm(reason.trim());
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(30, 20, 15, 0.65)',
+      backdropFilter: 'blur(5px)',
+      WebkitBackdropFilter: 'blur(5px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 99999,
+      padding: '20px',
+      animation: 'fadeIn 0.2s ease-out'
+    }} onClick={onCancel}>
+      <div style={{
+        background: '#fffcf7',
+        borderRadius: '20px',
+        maxWidth: '460px',
+        width: '100%',
+        padding: '28px 24px',
+        boxShadow: '0 24px 48px rgba(0,0,0,0.25)',
+        border: '1.5px solid #eeddcc',
+        position: 'relative'
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{
+          width: '54px',
+          height: '54px',
+          borderRadius: '50%',
+          background: '#fef2f2',
+          color: '#c0392b',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '1.7rem',
+          margin: '0 auto 14px',
+          boxShadow: '0 4px 12px rgba(192,57,43,0.15)'
+        }}>
+          📝
+        </div>
+        <h3 style={{
+          fontFamily: "'Playfair Display', serif",
+          fontSize: '1.3rem',
+          color: 'var(--espresso, #4a3728)',
+          margin: '0 0 8px 0',
+          fontWeight: 700,
+          textAlign: 'center'
+        }}>
+          Request Cancellation
+        </h3>
+        <p style={{
+          fontSize: '0.86rem',
+          color: 'var(--text-light, #666)',
+          lineHeight: 1.5,
+          margin: '0 0 16px 0',
+          textAlign: 'center'
+        }}>
+          Cancelling <strong>"{title}"</strong> requires a reason. Your cancellation request will be submitted to the staff/admin for review and approval.
+        </p>
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '14px', textAlign: 'left' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              color: 'var(--espresso, #4a3728)',
+              marginBottom: '6px'
+            }}>
+              Reason for Cancellation <span style={{ color: '#c0392b' }}>*</span>
+            </label>
+            <textarea
+              rows={3}
+              placeholder="e.g. Schedule conflict, emergency, change of plans…"
+              value={reason}
+              onChange={e => { setReason(e.target.value); if (error) setError(''); }}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                border: error ? '1.5px solid #dc2626' : '1.5px solid rgba(140, 107, 78, 0.3)',
+                fontSize: '0.88rem',
+                fontFamily: 'inherit',
+                outline: 'none',
+                background: '#fff',
+                boxSizing: 'border-box'
+              }}
+              autoFocus
+            />
+            {error && (
+              <div style={{ color: '#c0392b', fontSize: '0.78rem', marginTop: '4px', fontWeight: 600 }}>
+                ⚠️ {error}
+              </div>
+            )}
+          </div>
+
+          <div style={{
+            background: '#fff8f0',
+            border: '1px solid #f3e5d3',
+            borderRadius: '8px',
+            padding: '8px 12px',
+            fontSize: '0.75rem',
+            color: '#8c6b4e',
+            marginBottom: '18px',
+            lineHeight: 1.4,
+            textAlign: 'left'
+          }}>
+            ℹ️ Once submitted, your cancellation will be marked as <strong>Pending Approval</strong> until staff reviews it.
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={loading}
+              style={{
+                flex: 1,
+                padding: '11px 16px',
+                borderRadius: '10px',
+                border: '1.5px solid #ddd',
+                background: '#f8f8f8',
+                color: '#555',
+                fontSize: '0.88rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Keep Booking
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                flex: 1.5,
+                padding: '11px 16px',
+                borderRadius: '10px',
+                border: 'none',
+                background: '#c0392b',
+                color: '#fff',
+                fontSize: '0.88rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(192,57,43,0.25)'
+              }}
+            >
+              {loading ? 'Submitting…' : 'Submit Cancellation'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── Event Verification Pass & Details Modal (Presentable to Staff) ───────────
 function EventVerificationModal({ event, customer, onClose }) {
   if (!event) return null;
   const dur = event.duration_hours || getEventDuration(event.preferred_time);
+  const isCancelPending = event.status === 'cancellation_pending';
   const isApproved = event.status === 'approved' || event.status === 'upcoming';
   const isPending = event.status === 'pending_approval';
   const isRejected = event.status === 'rejected';
@@ -239,7 +417,9 @@ function EventVerificationModal({ event, customer, onClose }) {
   const passId = `KB-EVT-${(event._id || event.id || '000000').toString().slice(-6).toUpperCase()}`;
 
   let statusBadge = { text: '⏳ Pending Staff Review', bg: '#fff3cd', color: '#856404', border: '#fcd34d' };
-  if (isApproved) {
+  if (isCancelPending) {
+    statusBadge = { text: '⏳ Cancellation Pending Review', bg: '#fef3c7', color: '#92400e', border: '#fde68a' };
+  } else if (isApproved) {
     statusBadge = { text: '✅ Verified & Confirmed', bg: '#d4edda', color: '#155724', border: '#86efac' };
   } else if (isRejected) {
     statusBadge = { text: '❌ Not Approved', bg: '#f8d7da', color: '#721c24', border: '#fca5a5' };
@@ -865,7 +1045,7 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
     setCancelConfirm({ eventId, title: eventTitle });
   };
 
-  const doCancel = async () => {
+  const doCancel = async (reason) => {
     if (!cancelConfirm) return;
     const { eventId } = cancelConfirm;
     setCancellingId(eventId);
@@ -874,7 +1054,7 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
       const res = await fetch(`${API_BASE}/events/${eventId}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId })
+        body: JSON.stringify({ customerId, reason })
       });
       if (res.ok) {
         loadMyEvents();
@@ -894,6 +1074,7 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
     <>
     <div style={{ display: 'grid', gap: '14px', marginTop: '10px' }}>
       {myEvents.map(ev => {
+        const isCancelPending = ev.status === 'cancellation_pending';
         const isApproved = ev.status === 'approved' || ev.status === 'upcoming';
         const isPending = ev.status === 'pending_approval';
         const isRejected = ev.status === 'rejected';
@@ -901,7 +1082,10 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
 
         let statusText = 'Pending Approval';
         let statusStyle = { background: '#fff3cd', color: '#856404' };
-        if (isApproved) {
+        if (isCancelPending) {
+          statusText = 'Cancellation Pending Approval';
+          statusStyle = { background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' };
+        } else if (isApproved) {
           statusText = 'Approved';
           statusStyle = { background: '#d4edda', color: '#155724' };
         } else if (isRejected) {
@@ -912,12 +1096,12 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
           statusStyle = { background: '#f1f2f6', color: '#747d8c' };
         }
 
-        const canCancel = isPending || isApproved;
+        const canCancel = (isPending || isApproved) && !isCancelPending;
 
         return (
           <div key={ev.id} className="event-card" style={{
-            background: isCancelled ? '#fafafa' : '#fff',
-            border: '1px solid var(--border)',
+            background: isCancelled ? '#fafafa' : isCancelPending ? '#fffdf7' : '#fff',
+            border: isCancelPending ? '1.5px solid #fde68a' : '1px solid var(--border)',
             borderRadius: '12px',
             padding: '16px',
             boxShadow: 'var(--shadow)',
@@ -942,6 +1126,41 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
               📅 {new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               {ev.preferred_time && ` • 🕐 ${formatTimeRange(ev.preferred_time, ev.duration_hours || getEventDuration(ev.preferred_time))}`}
             </p>
+
+            {isCancelPending && (
+              <div style={{
+                margin: '8px 0',
+                padding: '8px 12px',
+                background: '#fffbeb',
+                borderRadius: '8px',
+                border: '1px solid #fde68a',
+                fontSize: '0.78rem',
+                color: '#92400e',
+                lineHeight: 1.4
+              }}>
+                <div style={{ fontWeight: 700, marginBottom: '2px' }}>⏳ Cancellation Request Submitted</div>
+                <div><strong>Reason:</strong> "{ev.cancellation_reason}"</div>
+                <div style={{ fontSize: '0.72rem', color: '#b45309', marginTop: '3px', fontStyle: 'italic' }}>
+                  Awaiting review and approval by KapeBara staff or admin.
+                </div>
+              </div>
+            )}
+
+            {!isCancelPending && isCancelled && ev.cancellation_reason && (
+              <div style={{
+                margin: '6px 0',
+                padding: '6px 10px',
+                background: '#f8f9fa',
+                border: '1px solid #dee2e6',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                color: '#6c757d',
+                fontStyle: 'italic'
+              }}>
+                Cancellation Reason: "{ev.cancellation_reason}"
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', gap: '8px', fontSize: '0.75rem' }}>
                 <span style={{
@@ -957,6 +1176,23 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
                   👥 {(ev.participants && ev.participants.length) || (ev.participant_names && ev.participant_names.length) || 0} / {ev.max_participants} registered guests
                 </span>
               </div>
+
+              {isCancelPending && (
+                <div style={{
+                  fontSize: '0.72rem',
+                  color: '#92400e',
+                  background: '#fef3c7',
+                  padding: '5px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid #fde68a',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  ⏳ Cancellation Under Review
+                </div>
+              )}
 
               {canCancel && (
                 isWithinCancelCutoff(ev.date)
@@ -991,7 +1227,7 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
                         transition: 'all 0.15s ease'
                       }}
                     >
-                      {cancellingId === ev.id ? 'Cancelling…' : '✕ Cancel Booking'}
+                      {cancellingId === ev.id ? 'Submitting…' : '✕ Cancel Booking'}
                     </button>
                   )
               )}
@@ -1005,15 +1241,12 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
         );
       })}
     </div>
-    <ConfirmModal
+    <CancelReasonModal
       isOpen={!!cancelConfirm}
-      title="Cancel Booking?"
-      message={cancelConfirm ? `Are you sure you want to cancel your booking request for "${cancelConfirm.title}"? The event organizer will be notified.` : ''}
-      confirmText="Yes, Cancel It"
-      cancelText="Keep Booking"
-      isDanger={true}
+      title={cancelConfirm ? cancelConfirm.title : ''}
       onConfirm={doCancel}
       onCancel={() => setCancelConfirm(null)}
+      loading={cancellingId !== null}
     />
   </>
   );
@@ -2199,6 +2432,7 @@ export default function CustomerApp() {
                       </div>
                       {visibleNotifications.map(ev => {
                         const evId = ev._id || ev.id;
+                        const isCancelPending = ev.status === 'cancellation_pending';
                         const isApproved = ev.status === 'approved' || ev.status === 'upcoming';
                         const isRejected = ev.status === 'rejected';
                         const isCancelled = ev.status === 'cancelled';
@@ -2210,7 +2444,13 @@ export default function CustomerApp() {
                         let badgeText = '⏳ Pending';
                         let statusDesc = 'Your booking is under review.';
 
-                        if (isApproved) {
+                        if (isCancelPending) {
+                          bg = '#fffbeb';
+                          border = '#fde68a';
+                          badgeBg = '#d97706';
+                          badgeText = '⏳ Cancel Pending';
+                          statusDesc = 'Your cancellation request is pending staff/admin review.';
+                        } else if (isApproved) {
                           bg = '#f0fdf4';
                           border = '#86efac';
                           badgeBg = '#16a34a';
@@ -2227,7 +2467,9 @@ export default function CustomerApp() {
                           border = '#dee2e6';
                           badgeBg = '#6c757d';
                           badgeText = '🚫 Cancelled';
-                          statusDesc = 'Your booking request was cancelled.';
+                          statusDesc = ev.cancellation_reason
+                            ? `Your cancellation request was approved (${ev.cancellation_reason}).`
+                            : 'Your booking request was cancelled.';
                         }
 
                         return (

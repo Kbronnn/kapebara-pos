@@ -93,6 +93,7 @@ function ReceiptModal({ order, onClose }) {
         <div class="logo-row">
           <h2>☕ KapeBara</h2>
           <p>Coffee Shop · Official Receipt</p>
+          <p style="margin-top:2px;font-size:0.7rem;color:#777">TIN: 271-082-724-00000</p>
         </div>
         <hr class="divider"/>
         <div class="info-row"><span>Order #</span><span>${order.order_number || '—'}</span></div>
@@ -124,6 +125,10 @@ function ReceiptModal({ order, onClose }) {
           <div class="row"><span>Subtotal</span><span>${formatPHP(order.subtotal || 0)}</span></div>
           ${(order.discount || 0) > 0 ? `<div class="row"><span>Discount</span><span>-${formatPHP(order.discount)}</span></div>` : ''}
           <div class="row grand"><span>TOTAL</span><span>${formatPHP(order.total || 0)}</span></div>
+          ${order.payment_method === 'Cash' && order.amount_tendered != null ? `
+            <div class="row" style="margin-top:6px;border-top:1px dashed #ccc;padding-top:6px"><span>Cash Received</span><span>${formatPHP(order.amount_tendered)}</span></div>
+            <div class="row" style="font-weight:bold;color:#1a6e1a"><span>Change Due</span><span>${formatPHP(order.change_due || 0)}</span></div>
+          ` : ''}
         </div>
         ${order.notes ? `<hr class="divider"/><div style="font-size:0.8rem;color:#555">Note: ${order.notes}</div>` : ''}
         <hr class="divider"/>
@@ -159,6 +164,7 @@ function ReceiptModal({ order, onClose }) {
             <h2 style={{ fontFamily: "'Playfair Display',serif", color: 'var(--espresso)', fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>
               Receipt
             </h2>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1px' }}>TIN: 271-082-724-00000</div>
             <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' }}>
               {order.order_number || `#${order._id?.slice(-6)}`}
             </div>
@@ -257,6 +263,18 @@ function ReceiptModal({ order, onClose }) {
               <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--espresso)' }}>TOTAL</span>
               <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--espresso)' }}>{formatPHP(order.total || 0)}</span>
             </div>
+            {order.payment_method === 'Cash' && order.amount_tendered != null && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '6px', marginTop: '4px', borderTop: '1px dashed rgba(74,44,10,0.18)' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>Cash Received</span>
+                  <span style={{ fontWeight: 600 }}>{formatPHP(order.amount_tendered)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
+                  <span style={{ fontWeight: 700, color: '#1b5e20', fontSize: '0.95rem' }}>Change Due</span>
+                  <span style={{ fontWeight: 800, color: '#1b5e20', fontSize: '1rem' }}>{formatPHP(order.change_due || 0)}</span>
+                </div>
+              </>
+            )}
           </div>
 
           {order.notes && (
@@ -323,7 +341,9 @@ export default function TransactionHistory() {
     const matchSearch = !q
       || (o.order_number || '').toLowerCase().includes(q)
       || (o.customer_name || '').toLowerCase().includes(q)
-      || (o.items_summary || '').toLowerCase().includes(q);
+      || (o.items_summary || '').toLowerCase().includes(q)
+      || (o.reference_number || '').toLowerCase().includes(q)
+      || (o.payment_ref || '').toLowerCase().includes(q);
     const matchStatus = statusFilter === 'all' || o.status === statusFilter;
     const matchSource = sourceFilter === 'all' || o.source === sourceFilter;
     return matchSearch && matchStatus && matchSource;
@@ -435,7 +455,7 @@ export default function TransactionHistory() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
               <thead>
                 <tr style={{ background: 'var(--cream)', borderBottom: '2px solid var(--border)' }}>
-                  {['Order #', 'Date & Time', 'Customer', 'Items', 'Payment', 'Source', 'Status', 'Total', ''].map(h => (
+                  {['Order #', 'Ref #', 'Date & Time', 'Customer', 'Items', 'Payment', 'Source', 'Status', 'Total', ''].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--espresso)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -455,6 +475,9 @@ export default function TransactionHistory() {
                     >
                       <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--espresso)', whiteSpace: 'nowrap' }}>
                         {order.order_number || `#${order._id?.slice(-6)}`}
+                      </td>
+                      <td style={{ padding: '12px 16px', color: 'var(--text-muted)', whiteSpace: 'nowrap', fontSize: '0.82rem', fontFamily: 'monospace' }}>
+                        {order.reference_number || order.payment_ref || <span style={{ color: 'var(--text-muted)', opacity: 0.5 }}>—</span>}
                       </td>
                       <td style={{ padding: '12px 16px', color: 'var(--text-muted)', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
                         {formatDateTime(order.created_at)}

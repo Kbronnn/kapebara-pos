@@ -187,9 +187,13 @@ router.post('/:id/leave', async (req, res) => {
   }
 });
 
-// ── POST customer cancels their own event booking ─────────────────────────────
+// ── POST customer cancels their own event booking (requests cancellation with reason) ─
 router.post('/:id/cancel', async (req, res) => {
-  const { customerId } = req.body;
+  const { customerId, reason } = req.body;
+  if (!reason || !reason.trim()) {
+    return res.status(400).json({ error: 'A reason is required to cancel an event.' });
+  }
+
   try {
     const event = await Event.findById(req.params.id);
     if (!event) return res.status(404).json({ error: 'Event not found' });
@@ -212,13 +216,17 @@ router.post('/:id/cancel', async (req, res) => {
       }
     }
 
-    event.status = 'cancelled';
-    event.approval_notified = true;
+    // Mark as pending cancellation for staff/admin review
+    event.previous_status = event.status;
+    event.status = 'cancellation_pending';
+    event.cancellation_reason = reason.trim();
+    event.cancellation_requested_at = new Date();
+    event.approval_notified = false;
     event.updated_at = new Date();
     await event.save();
-    res.json({ message: 'Event request cancelled successfully' });
+    res.json({ message: 'Cancellation request submitted and awaiting staff review.', event });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to cancel event' });
+    res.status(500).json({ error: 'Failed to request event cancellation' });
   }
 });
 
@@ -349,7 +357,7 @@ router.post('/', async (req, res) => {
 router.patch('/:id/status', async (req, res) => {
   const { status } = req.body;
   const cleanStatus = (status || '').toLowerCase().trim();
-  const allowed = ['approved', 'rejected', 'pending_approval', 'upcoming'];
+  const allowed = ['approved', 'rejected', 'pending_approval', 'upcoming', 'cancelled', 'cancellation_pending'];
   if (!allowed.includes(cleanStatus))
     return res.status(400).json({ error: 'Invalid status value' });
 
@@ -358,9 +366,42 @@ router.patch('/:id/status', async (req, res) => {
     const updates = { status: cleanStatus, approval_notified: false, updated_at: new Date() };
     const event = await Event.findByIdAndUpdate(req.params.id, updates, { new: true });
     if (!event) return res.status(404).json({ error: 'Event not found' });
-    res.json({ message: `Event ${cleanStatus} successfully.` });
+    res.json({ message: `Event ${cleanStatus} successfully.`, event });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update event status' });
+  }
+});
+
+// ── POST approve event cancellation (by staff or admin) ───────────────────────
+router.post('/:id/cancellation/approve', async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+    event.status = 'cancelled';
+    event.approval_notified = false;
+    event.updated_at = new Date();
+    await event.save();
+    res.json({ message: 'Event cancellation approved.', event });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to approve cancellation' });
+  }
+});
+
+// ── POST reject event cancellation (by staff or admin) ────────────────────────
+router.post('/:id/cancellation/reject', async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+    event.status = event.previous_status || 'approved';
+    if (req.body && req.body.note) {
+      event.cancellation_admin_note = req.body.note.trim();
+    }
+    event.approval_notified = false;
+    event.updated_at = new Date();
+    await event.save();
+    res.json({ message: 'Event cancellation declined. Event remains active.', event });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to reject cancellation' });
   }
 });
 

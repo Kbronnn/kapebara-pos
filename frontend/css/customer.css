@@ -16,7 +16,7 @@
 
 html, body, #root, #customer-root {
   max-width: 100vw;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
@@ -33,7 +33,7 @@ body {
   color: #4a3728;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
+  overflow-x: clip;
   width: 100%;
 }
 
@@ -42,12 +42,14 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 20px 50px;
-  background: rgba(250, 247, 242, 0.8);
-  backdrop-filter: blur(10px);
+  background: rgba(250, 247, 242, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1000;
   border-bottom: 1px solid rgba(74, 55, 40, 0.1);
+  transition: box-shadow 0.2s, background 0.2s;
 }
 
 .landing-brand {
@@ -1417,8 +1419,11 @@ textarea:focus {
 
 /* ── Responsive Mobile & Tablet Design ────────────────────────────────────── */
 @media (max-width: 992px) {
+  /* On mobile: header scrolls away normally (not sticky) */
   .landing-header {
     padding: 14px 20px;
+    position: relative;
+    top: auto;
   }
   /* Hide desktop nav & login btn; show hamburger */
   .landing-nav {
@@ -1427,8 +1432,30 @@ textarea:focus {
   .landing-login-btn--desktop {
     display: none;
   }
+  /* Hamburger floats fixed so it's always accessible while scrolling */
   .hamburger-btn {
-    display: flex;
+    display: flex !important;
+    position: fixed !important;
+    top: 14px !important;
+    right: 18px !important;
+    z-index: 1100 !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
+    background: rgba(250, 247, 242, 0.92) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: 1.5px solid rgba(212, 163, 115, 0.35) !important;
+    box-shadow: 0 4px 14px rgba(74, 55, 40, 0.18) !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    cursor: pointer !important;
+    transition: box-shadow 0.2s, background 0.2s !important;
+  }
+  .hamburger-btn:hover {
+    background: rgba(250, 242, 232, 0.97) !important;
+    box-shadow: 0 6px 18px rgba(74, 55, 40, 0.25) !important;
   }
   .landing-hero {
     padding: 60px 20px;
