@@ -2904,6 +2904,7 @@ textarea:focus {
     font-size: 1.15rem !important;
   }
   .menu-products-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
   }
 }
