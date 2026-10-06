@@ -1108,8 +1108,8 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
             display: 'block',
             opacity: isCancelled ? 0.75 : 1
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-              <h4 style={{ margin: 0, fontFamily: "'Playfair Display', serif", fontSize: '1.05rem', color: isCancelled ? '#888' : 'var(--espresso)', fontWeight: 700 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+              <h4 style={{ margin: 0, fontFamily: "'Playfair Display', serif", fontSize: '1.05rem', color: isCancelled ? '#888' : 'var(--espresso)', fontWeight: 700, minWidth: 0, wordBreak: 'break-word', flex: '1 1 120px' }}>
                 {ev.title}
               </h4>
               <span style={{
@@ -1117,6 +1117,9 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
                 fontWeight: 700,
                 padding: '4px 10px',
                 borderRadius: '20px',
+                flexShrink: 0,
+                maxWidth: '100%',
+                wordBreak: 'break-word',
                 ...statusStyle
               }}>
                 {statusText}
@@ -1207,7 +1210,11 @@ function MyEventsList({ customerId, customerName, onEventCancelled }) {
                       fontWeight: 600,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px'
+                      gap: '4px',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
+                      wordBreak: 'break-word',
+                      flexWrap: 'wrap'
                     }}>
                       🚫 Cancellation locked — within 2 days of event
                     </div>
@@ -2835,10 +2842,12 @@ export default function CustomerApp() {
                         marginBottom: '12px',
                         display: 'flex',
                         gap: '12px',
-                        alignItems: 'flex-start'
+                        alignItems: 'flex-start',
+                        maxWidth: '100%',
+                        boxSizing: 'border-box'
                       }}>
                         <span style={{ fontSize: '1.4rem', lineHeight: 1, flexShrink: 0 }}>📢</span>
-                        <div style={{ fontSize: '0.84rem', color: '#6d4c13', lineHeight: 1.5 }}>
+                        <div style={{ fontSize: '0.84rem', color: '#6d4c13', lineHeight: 1.5, flex: 1, minWidth: 0, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                           <strong>Booking Instructions:</strong> After booking, the owner/staff will review your booking request and will contact you through your given phone number regarding the approval or rejection of your event. Please wait for their announcement and confirmation. Thank you! ☕
                         </div>
                       </div>
@@ -2851,10 +2860,12 @@ export default function CustomerApp() {
                         marginBottom: '12px',
                         display: 'flex',
                         gap: '12px',
-                        alignItems: 'flex-start'
+                        alignItems: 'flex-start',
+                        maxWidth: '100%',
+                        boxSizing: 'border-box'
                       }}>
                         <span style={{ fontSize: '1.4rem', lineHeight: 1, flexShrink: 0 }}>🚫</span>
-                        <div style={{ fontSize: '0.84rem', color: '#7f1d1d', lineHeight: 1.5 }}>
+                        <div style={{ fontSize: '0.84rem', color: '#7f1d1d', lineHeight: 1.5, flex: 1, minWidth: 0, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                           <strong>Cancellation Policy:</strong> Cancellations are <strong>not allowed within 2 days</strong> of the event date. Please plan accordingly to avoid any inconvenience.
                         </div>
                       </div>
@@ -2867,10 +2878,12 @@ export default function CustomerApp() {
                         marginBottom: '20px',
                         display: 'flex',
                         gap: '12px',
-                        alignItems: 'flex-start'
+                        alignItems: 'flex-start',
+                        maxWidth: '100%',
+                        boxSizing: 'border-box'
                       }}>
                         <span style={{ fontSize: '1.4rem', lineHeight: 1, flexShrink: 0 }}>💰</span>
-                        <div style={{ fontSize: '0.84rem', color: '#78350f', lineHeight: 1.5 }}>
+                        <div style={{ fontSize: '0.84rem', color: '#78350f', lineHeight: 1.5, flex: 1, minWidth: 0, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                           <strong>Reservation Fee / Down Payment:</strong> A reservation fee may be required upon approval to secure your event slot. This ensures that preparation efforts are not wasted in case of last-minute cancellations. The admin will discuss the amount with you upon confirmation.
                         </div>
                       </div>

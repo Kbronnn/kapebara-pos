@@ -15,8 +15,10 @@
 }
 
 html, body, #root, #customer-root {
+  width: 100%;
   max-width: 100vw;
-  overflow-x: clip;
+  overflow-x: hidden;
+  position: relative;
 }
 
 body {
@@ -33,7 +35,7 @@ body {
   color: #4a3728;
   display: flex;
   flex-direction: column;
-  overflow-x: clip;
+  overflow-x: hidden;
   width: 100%;
 }
 
@@ -2596,9 +2598,7 @@ textarea:focus {
   margin-bottom: 6px !important;
   display: block !important;
   line-height: 1.2 !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  word-break: break-word !important;
 }
 
 .host-label-sub {
@@ -2620,17 +2620,222 @@ textarea:focus {
   align-items: center;
   gap: 8px;
   line-height: 1.4;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
-@media (max-width: 480px) {
+/* ═══════════════════════════════════════════════════════════════
+   UNIVERSAL RESPONSIVE OVERHAUL (FULLY RESPONSIVE DOWN TO 320PX)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Universal container guarantees */
+.portal-container,
+.portal-main-card,
+.shop-calendar,
+.cal-grid,
+.event-card,
+.host-event-section,
+.host-event-section > div {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Calendar grid track safety: minmax(0, 1fr) ensures columns can shrink below text length */
+.cal-grid {
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.cal-cell {
+  min-width: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* Callout info boxes (Instructions, Cancellation Policy, Reservation Fee) */
+.host-event-section [style*="flex"] {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.host-event-section [style*="flex"] > div:last-child {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+/* Event card title & header flex wrapping */
+.event-card > div:first-child {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+}
+
+.event-card h4 {
+  min-width: 0 !important;
+  word-break: break-word !important;
+  flex: 1 1 120px !important;
+  white-space: normal !important;
+  overflow: visible !important;
+}
+
+/* Calendar legend wraps fluidly */
+.cal-legend {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  gap: 6px 12px !important;
+}
+
+/* Form fields collapse to 1 column on all screens <= 640px */
+@media (max-width: 640px) {
   .event-datetime-grid,
-  .host-contact-guests-grid {
-    gap: 8px !important;
+  .host-contact-guests-grid,
+  .form-grid-2col {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
   }
-  .event-datetime-grid label,
-  .host-field-label {
+  .cal-header-container {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .cal-header {
+    text-align: center !important;
+    font-size: 1rem !important;
+    width: 100% !important;
+    margin-bottom: 0 !important;
+  }
+  .cal-controls {
+    display: flex !important;
+    width: 100% !important;
+    gap: 4px !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+  .cal-select {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    padding: 5px 4px !important;
+    font-size: 0.8rem !important;
+  }
+  .cal-nav-btn {
+    padding: 5px 8px !important;
+    font-size: 0.75rem !important;
+    flex-shrink: 0 !important;
+  }
+}
+
+/* ── Screen Widths <= 768px (Tablets / Phablets / Phones) ── */
+@media (max-width: 768px) {
+  .portal-container {
+    padding: 16px 12px !important;
+  }
+  .portal-main-card {
+    padding: 20px 14px !important;
+    border-radius: 14px !important;
+    overflow-x: hidden !important;
+  }
+  .portal-events-layout {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  #shop-calendar-container {
+    padding: 12px 10px !important;
+    overflow: hidden !important;
+  }
+  .cal-cell {
+    min-height: 44px !important;
+    padding: 4px 2px !important;
+    border-radius: 6px !important;
+  }
+  .cal-day-num {
+    font-size: 0.78rem !important;
+  }
+  .cal-day-label {
+    font-size: 0.68rem !important;
+    padding: 3px 0 !important;
+  }
+  .cal-booked-label,
+  .cal-buffer-label {
+    font-size: 0.52rem !important;
+    letter-spacing: 0 !important;
+  }
+}
+
+/* ── Screen Widths <= 480px (Standard Mobile: 360px - 480px) ── */
+@media (max-width: 480px) {
+  .portal-container {
+    padding: 12px 8px !important;
+  }
+  .portal-main-card {
+    padding: 14px 10px !important;
+    border-radius: 12px !important;
+  }
+  .portal-tabs-header {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 2px !important;
+  }
+  .portal-tab-bar {
+    display: flex !important;
+    width: max-content !important;
+    min-width: 100% !important;
+    gap: 4px !important;
+  }
+  .portal-tab-btn {
+    padding: 8px 10px !important;
     font-size: 0.76rem !important;
-    margin-bottom: 4px !important;
+    white-space: nowrap !important;
+  }
+  #shop-calendar-container {
+    padding: 8px 6px !important;
+  }
+  .cal-grid {
+    gap: 2px !important;
+  }
+  .cal-cell {
+    min-height: 38px !important;
+    padding: 3px 1px 2px !important;
+    border-radius: 4px !important;
+  }
+  .cal-day-num {
+    font-size: 0.70rem !important;
+    line-height: 1 !important;
+    margin-bottom: 1px !important;
+  }
+  .cal-day-label {
+    font-size: 0.60rem !important;
+    padding: 2px 0 !important;
+    letter-spacing: 0 !important;
+  }
+  .cal-booked-label,
+  .cal-buffer-label {
+    font-size: 0.44rem !important;
+    letter-spacing: 0 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+    margin-top: 1px !important;
+  }
+  .cal-legend {
+    gap: 5px 10px !important;
+    font-size: 0.68rem !important;
   }
   #event-title,
   #event-date,
@@ -2642,94 +2847,63 @@ textarea:focus {
     height: 40px !important;
     min-height: 40px !important;
   }
-}
-
-
-/* ═══════════════════════════════════════════════════════════════
-   MOBILE OVERFLOW FIXES (Events page, Calendar, Info boxes)
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Calendar container: always clips its own overflow */
-.shop-calendar {
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-.cal-grid {
-  width: 100%;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-/* Info boxes inner text div must be able to break */
-.host-event-section [style*="flex"] > div:last-child {
-  min-width: 0 !important;
-  word-break: break-word !important;
-  overflow-wrap: break-word !important;
-  flex: 1 1 0 !important;
-}
-
-/* Event card title: don't push badge off screen */
-.event-card h4 {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1 1 0;
-  white-space: normal;
-  word-break: break-word;
-}
-
-/* Calendar legend wraps */
-.cal-legend {
-  flex-wrap: wrap;
-}
-
-@media (max-width: 600px) {
-  #shop-calendar-container {
-    padding: 10px !important;
-    overflow: hidden !important;
+  .event-date-notice {
+    font-size: 0.74rem !important;
+    padding: 6px 8px !important;
   }
-  .cal-cell {
-    min-height: 40px !important;
-    padding: 3px 1px !important;
-    border-radius: 5px !important;
-  }
-  .cal-day-num  { font-size: 0.71rem !important; }
-  .cal-booked-label,
-  .cal-buffer-label { font-size: 0.48rem !important; letter-spacing: 0 !important; }
-  .cal-day-label { font-size: 0.6rem !important; padding: 2px 0 3px !important; letter-spacing: 0 !important; }
-  .cal-grid { gap: 2px !important; }
-  .cal-legend { gap: 8px !important; font-size: 0.68rem !important; flex-wrap: wrap; justify-content: center; }
-  /* Event card header: badge wraps below title */
-  .event-card > div:first-child { flex-wrap: wrap !important; gap: 6px !important; }
-  /* Info boxes should not spill */
-  .host-event-section > div[style] {
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    overflow: hidden !important;
+  .event-card {
+    padding: 12px 10px !important;
   }
 }
 
-@media (max-width: 480px) {
-  .event-datetime-grid,
-  .host-contact-guests-grid,
-  .form-grid-2col {
-    grid-template-columns: 1fr !important;
-    gap: 10px !important;
+/* ── Screen Widths <= 360px (Ultra-compact: 320px - 360px, e.g. iPhone SE, Galaxy Fold) ── */
+@media (max-width: 360px) {
+  .portal-container {
+    padding: 8px 4px !important;
   }
   .portal-main-card {
-    padding: 14px 10px !important;
-    overflow-x: hidden !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
+    padding: 10px 6px !important;
+    border-radius: 10px !important;
   }
-  .cal-header-container {
-    flex-direction: column !important;
-    align-items: center !important;
-    gap: 6px !important;
+  .portal-tab-btn {
+    padding: 6px 8px !important;
+    font-size: 0.72rem !important;
   }
-  .cal-header { text-align: center !important; width: 100% !important; }
-  .cal-controls { justify-content: center !important; width: 100% !important; }
-  .cal-select { flex: 1; min-width: 0; }
+  #shop-calendar-container {
+    padding: 6px 3px !important;
+  }
+  .cal-grid {
+    gap: 1px !important;
+  }
+  .cal-cell {
+    min-height: 32px !important;
+    padding: 2px 0 1px !important;
+    border-radius: 3px !important;
+  }
+  .cal-day-num {
+    font-size: 0.64rem !important;
+    margin-bottom: 0 !important;
+  }
+  .cal-day-label {
+    font-size: 0.50rem !important;
+    padding: 1px 0 !important;
+  }
+  .cal-booked-label,
+  .cal-buffer-label {
+    font-size: 0.38rem !important;
+    margin-top: 0 !important;
+  }
+  .cal-legend {
+    font-size: 0.62rem !important;
+    gap: 4px 8px !important;
+  }
+  .landing-brand {
+    gap: 8px !important;
+  }
+  .landing-name {
+    font-size: 1.15rem !important;
+  }
+  .menu-products-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
