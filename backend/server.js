@@ -29,7 +29,10 @@ async function startServer() {
   const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
-    'https://kapebara-pos.onrender.com',
+    // Customer Portal (Vercel)
+    'https://kapebara.vercel.app',
+    // Admin / POS Portal (Vercel)
+    'https://kp-admin.vercel.app',
     /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/  // Allow local network IPs
   ];
   app.use(cors({
