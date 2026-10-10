@@ -30,11 +30,10 @@ async function parseError(r) {
   }
 }
 
-// ── Main API object ───────────────────────────────────────────────────────────
-// In production (Vercel), VITE_API_BASE points to the Render backend.
-// In dev, it's empty so the Vite proxy forwards /api → localhost:3000.
+
+// — Main API object ———————————————————————————————————————————
 export const API = {
-  base: (import.meta.env.VITE_API_BASE || '') + '/api',
+  base: '/api',
 
   async get(path) {
     const r = await fetch(this.base + path, {
