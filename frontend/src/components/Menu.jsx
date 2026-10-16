@@ -419,13 +419,13 @@ export default function Menu() {
   const categories = [...new Set(products.map(p => p.category))];
 
   return (
-    <div className="menu-view-container">
+    <div className="menu-view-container" style={{ width: '100%', maxWidth: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
         <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.8rem', fontWeight: 700, color: 'var(--espresso)', margin: 0 }}>Menu</h2>
         <div style={{ width: '4px', height: '34px', background: 'var(--tan-dark)', borderRadius: '2px' }}></div>
       </div>
 
-      <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '24px' }}>
+      <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '24px', flexWrap: 'wrap', gap: '10px' }}>
         <span className="text-muted" style={{ fontSize: '0.9rem', fontWeight: 500 }}>{products.length} items on menu</span>
         <button className="btn btn-primary" onClick={() => { setAddForm({ ...BLANK_FORM }); setAddOpen(true); }}>+ Add Item</button>
       </div>

@@ -250,7 +250,7 @@ export default function StaffApp() {
   const lowAlerts = alerts.filter(a => a.status === 'low');
 
   return (
-    <div id="app-content" style={{ display: 'flex' }}>
+    <div id="app-content" style={{ display: 'flex', width: '100%', minWidth: 0, minHeight: '100vh', flex: 1 }}>
       {/* Mobile Sidebar Backdrop */}
       <div className={`sidebar-backdrop ${sidebarOpen ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} />
 
@@ -315,13 +315,13 @@ export default function StaffApp() {
       {/* Main Content */}
       <main className="main-content" id="main-content">
         <header className="top-bar">
-          <div className="top-bar-left" style={{ display: 'flex', alignItems: 'center' }}>
+          <div className="top-bar-left" style={{ display: 'flex', alignItems: 'center', minWidth: 0, gap: '4px' }}>
             <button className="mobile-nav-toggle" style={{ display: 'none' }} onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
             <h1 className="page-title" id="page-title">{pageTitle}</h1>
           </div>
-          <div className="top-bar-right">
+          <div className="top-bar-right" style={{ flexShrink: 0 }}>
             {alerts.length > 0 && (
-              <div className="top-bar-badge" id="low-stock-top" style={{ display: 'flex', cursor: 'pointer' }}
+              <div className="top-bar-badge" id="low-stock-top" style={{ display: 'flex', cursor: 'pointer', whiteSpace: 'nowrap' }}
                 onClick={() => navigateTo('inventory')}>
                 ⚠️ <span id="low-stock-count">{alerts.length}</span> low stock
               </div>

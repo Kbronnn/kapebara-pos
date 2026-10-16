@@ -182,10 +182,10 @@ export default function Events() {
   );
 
   return (
-    <div>
+    <div style={{ width: '100%', maxWidth: '100%' }}>
       {/* Header with filters */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-        <div className="period-tabs" style={{ margin: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
+        <div className="period-tabs" style={{ margin: 0, display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
           {[
             { key: 'all', label: `All Events (${events.length})` },
             { key: 'cancellations', label: `⚠️ Cancel Requests (${cancelRequests.length})`, alert: cancelRequests.length > 0 },
@@ -203,22 +203,22 @@ export default function Events() {
             </button>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button
             className="btn btn-secondary btn-sm"
             onClick={() => loadEvents(true)}
             disabled={refreshing}
             title="Refresh events list"
-            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}
           >
             <span style={{ display: 'inline-block', animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
             {refreshing ? 'Refreshing…' : 'Refresh'}
           </button>
-          <button className="btn btn-primary btn-sm" onClick={() => setAddModalOpen(true)}>➕ Add Shop Event</button>
+          <button className="btn btn-primary btn-sm" style={{ whiteSpace: 'nowrap' }} onClick={() => setAddModalOpen(true)}>➕ Add Shop Event</button>
         </div>
       </div>
 
-      <div className="card">
+      <div className="card" style={{ width: '100%', overflow: 'hidden' }}>
         {loading ? (
           <div className="flex-center" style={{ height: '200px' }}><div className="spinner"></div></div>
         ) : displayed.length === 0 ? (
@@ -227,8 +227,8 @@ export default function Events() {
             <p>No events in this category.</p>
           </div>
         ) : (
-          <div className="table-wrap">
-            <table>
+          <div className="table-wrap" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ minWidth: '780px', width: '100%' }}>
               <thead>
                 <tr>
                   <th>Title</th><th>Host</th><th>Phone</th><th>Date</th><th>Time</th>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KapeBara POS — Updated Entity-Relationship Diagram</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #12100e;
+      --card-bg: #1c1815;
+      --border: #3b2e25;
+      --text: #ede4dc;
+      --accent: #d4a373;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 30px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    h1 {
+      color: var(--accent);
+      margin-bottom: 6px;
+      font-size: 28px;
+    }
+    p {
+      color: #bfaea2;
+      margin-top: 0;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 30px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .mermaid {
+      display: flex;
+      justify-content: center;
+      background: #faf6f0;
+      padding: 24px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    .img-box {
+      text-align: center;
+      background: #faf6f0;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    .img-box img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>☕ KapeBara POS System — Updated ER Diagram</h1>
+    <p>MongoDB / Mongoose Schema Architecture (backend/db/database.js)</p>
+  </div>
+
+  <div class="card">
+    <h2 style="color: var(--accent); margin-top: 0;">Interactive Vector ER Diagram (Mermaid)</h2>
+    <div class="mermaid">
+erDiagram
+    CUSTOMER ||--o{ ORDER : "places (1:N)"
+    CUSTOMER ||--o{ RATING : "submits (1:N)"
+    CUSTOMER ||--o{ EVENT : "hosts / joins (1:N)"
+    ADMIN ||--o{ AUDIT_LOG : "generates (1:N)"
+    ORDER ||--|{ ORDER_ITEM : "contains (1:N embedded)"
+    PRODUCT ||--o{ ORDER_ITEM : "ordered in (1:N)"
+    PRODUCT ||--|{ PRODUCT_INGREDIENT : "composed of (1:N embedded)"
+    INGREDIENT ||--o{ PRODUCT_INGREDIENT : "supplies (1:N)"
+
+    CUSTOMER {
+        ObjectId _id PK
+        string name
+        string email UK
+        string password_hash
+        string avatar_url
+        number points
+        string loyalty_level
+        string unique_id UK
+        string birthdate
+        string phone
+        date created_at
+    }
+
+    PRODUCT {
+        ObjectId _id PK
+        string name
+        string category
+        number price
+        string description
+        string emoji
+        string image_url
+        number active
+        boolean is_special_edition
+        boolean is_best_seller
+        date created_at
+    }
+
+    PRODUCT_INGREDIENT {
+        ObjectId ingredient_id FK
+        number quantity_used
+    }
+
+    INGREDIENT {
+        ObjectId _id PK
+        string name
+        string unit
+        number current_stock
+        number min_stock
+        date last_restocked_at
+        string last_restocked_by
+        date expiration_date
+        date created_at
+    }
+
+    ORDER {
+        ObjectId _id PK
+        string order_number UK
+        number subtotal
+        number discount
+        number total
+        string payment_method
+        string payment_ref
+        string reference_number
+        string table_number
+        ObjectId customer_id FK
+        string customer_name
+        string customer_unique_id
+        string source
+        string status
+        string notes
+        string cashier_name
+        string pos_number
+        string register_number
+        string device_number
+        number amount_tendered
+        number change_due
+        date created_at
+    }
+
+    ORDER_ITEM {
+        ObjectId product_id FK
+        string product_name
+        number quantity
+        number unit_price
+        number subtotal
+        mixed customizations
+    }
+
+    EVENT {
+        ObjectId _id PK
+        string title
+        string description
+        string date
+        string preferred_time
+        string type
+        string host_name
+        string phone
+        boolean is_private
+        number max_participants
+        number duration_hours
+        string status
+        boolean approval_notified
+        string cancellation_reason
+        date cancellation_requested_at
+        string cancellation_admin_note
+        string previous_status
+        ObjectId customer_id FK
+        date created_at
+        date updated_at
+    }
+
+    ADMIN {
+        ObjectId _id PK
+        string username UK
+        string password_hash
+        string role
+        date created_at
+    }
+
+    AUDIT_LOG {
+        ObjectId _id PK
+        ObjectId admin_id FK
+        string username
+        string role
+        string action
+        string ip
+        date created_at
+    }
+
+    RATING {
+        ObjectId _id PK
+        ObjectId customer_id FK
+        number rating
+        string comment
+        date created_at
+    }
+
+    SHOP_SETTINGS {
+        ObjectId _id PK
+        number max_people_per_event
+        number max_concurrent_events
+        string shop_open_time
+        string shop_close_time
+    }
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="color: var(--accent); margin-top: 0;">Diagram Image View</h2>
+    <div class="img-box">
+      <img src="kapebara_er_diagram_updated.png" alt="KapeBara ER Diagram Updated" />
+    </div>
+  </div>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default' });
+  </script>
+</body>
+</html>

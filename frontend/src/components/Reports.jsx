@@ -284,13 +284,13 @@ export default function Reports() {
       ) : reportData && (
         <>
           {/* Export toolbar */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
             <button className="btn btn-secondary btn-sm" onClick={handleExportCSV}>📥 Download CSV</button>
             <button className="btn btn-secondary btn-sm" onClick={handlePrint}>🖨️ Print / Save PDF</button>
           </div>
 
           {/* KPI Summary */}
-          <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '20px' }}>
+          <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: '20px' }}>
             <div className="kpi-card">
               <div className="kpi-icon">💰</div>
               <div className="kpi-value">{formatPHP(reportData.daily.reduce((s, d) => s + d.revenue, 0))}</div>
